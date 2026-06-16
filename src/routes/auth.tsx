@@ -10,11 +10,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ArrowLeft, Shield, UserPlus, Users } from "lucide-react";
 
-const roleSchema = z.enum(["agent", "referral", "client"]).catch("client");
+type PortalRole = "agent" | "referral" | "client";
+const roleSchema = z.enum(["agent", "referral", "client"]);
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>) => ({
-    role: roleSchema.parse(s.role ?? "client"),
+    role: (roleSchema.safeParse(s.role).success ? (s.role as PortalRole) : "client") as PortalRole,
   }),
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
