@@ -77,16 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Medicaid Success — Onboarding Portal" },
+      { name: "description", content: "Medicaid Success helps agents, referral partners, and clients onboard, submit documents, and track every step of the Medicaid application process." },
+      { name: "author", content: "Medicaid Success" },
+      { property: "og:title", content: "Medicaid Success — Onboarding Portal" },
+      { property: "og:description", content: "Secure portals for agents, referral partners, and clients. Upload documents, track status, get approved." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" },
       {
         rel: "stylesheet",
         href: appCss,
@@ -115,6 +117,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      if (cancelled) return;
+      const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+        router.invalidate();
+        if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      });
+      // store unsubscriber on window for HMR cleanup
+      (window as unknown as { __authSub?: { unsubscribe: () => void } }).__authSub?.unsubscribe?.();
+      (window as unknown as { __authSub?: { unsubscribe: () => void } }).__authSub = sub.subscription;
+    });
+    return () => { cancelled = true; };
+  }, [router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
