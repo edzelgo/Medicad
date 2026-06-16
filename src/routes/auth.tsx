@@ -38,7 +38,8 @@ const roleMeta = {
 } as const;
 
 function AuthPage() {
-  const { role } = Route.useSearch();
+  const search = Route.useSearch();
+  const role = search.role as PortalRole;
   const navigate = useNavigate();
   const Icon = roleMeta[role].icon;
 
