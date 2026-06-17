@@ -1,44 +1,79 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { Shield, Users, UserPlus, FileCheck, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  Building2,
+  HeartHandshake,
+  Home,
+  User,
+  FileCheck,
+  Phone,
+  Printer,
+  Mail,
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  Clock,
+  DollarSign,
+  Users as UsersIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Medicaid Success — Onboarding made dignified" },
-      { name: "description", content: "Secure portals for agents, referral partners, and clients to onboard, upload documents, and track every step of the Medicaid application." },
-      { property: "og:title", content: "Medicaid Success — Onboarding made dignified" },
-      { property: "og:description", content: "Three private portals. One trusted process. Upload, track, and get approved with Medicaid Success." },
+      { title: "Medicaid Success — Long-term care Medicaid planning solutions" },
+      { name: "description", content: "Medicaid Success offers low-cost, highly effective long-term care Medicaid planning for nursing homes, PACE organizations, home care providers, and individuals." },
+      { property: "og:title", content: "Medicaid Success — Long-term care Medicaid planning" },
+      { property: "og:description", content: "Solutions for nursing homes, PACE organizations, home care, and individuals navigating long-term care Medicaid." },
     ],
   }),
   component: Index,
 });
 
-const portals = [
+const services = [
   {
-    role: "agent" as const,
-    title: "Agent Portal",
-    kicker: "For licensed producers",
-    description: "Submit licensing, sign producer agreements, and track every client you've referred — all in one secure workspace.",
-    icon: Shield,
-    points: ["Producer onboarding checklist", "License & E&O document vault", "Referral pipeline tracking"],
+    title: "Nursing Homes",
+    brand: "Medicaid Success™",
+    description: "A highly effective and low-cost way to manage your facility's Medicaid population.",
+    icon: Building2,
+    href: "/services/nursing-homes",
   },
   {
-    role: "referral" as const,
-    title: "Referral Partner",
-    kicker: "For hospitals, clinics & community orgs",
-    description: "Refer patients with confidence. Upload partnership documents and receive weekly status updates on every case.",
-    icon: UserPlus,
-    points: ["Partner agreement uploads", "Patient packet submission", "Weekly case updates"],
+    title: "PACE Organizations",
+    brand: "Medicaid Success™",
+    description: "A low-cost solution for all of your Medicaid application needs.",
+    icon: HeartHandshake,
+    href: "/services/pace",
   },
   {
-    role: "client" as const,
-    title: "Client Portal",
-    kicker: "For Medicaid applicants",
-    description: "Upload your documents once, securely. We handle eligibility, filing, and follow-up with your state agency.",
-    icon: Users,
-    points: ["Identity & income verification", "Eligibility review", "Application filed for you"],
+    title: "Home Care",
+    brand: "Medicaid Success at Home™",
+    description: "Designed to work directly with home care agencies to help prospective clients with full Medicaid eligibility needs.",
+    icon: Home,
+    href: "/services/home-care",
   },
+  {
+    title: "Individuals",
+    brand: "Medicaid Success Select™",
+    description: "We take over the challenging process of protecting your assets and applying for LTC Medicaid.",
+    icon: User,
+    href: "/services/individuals",
+  },
+];
+
+const whyChoose = [
+  { icon: ShieldCheck, title: "Specialized expertise", body: "Our team focuses exclusively on long-term care Medicaid — application, eligibility, and asset protection." },
+  { icon: DollarSign, title: "Low cost, high value", body: "Transparent pricing that reduces the administrative burden on your facility or family." },
+  { icon: Clock, title: "Fast turnarounds", body: "We move applications through quickly so coverage starts when it's needed." },
+  { icon: UsersIcon, title: "Dedicated specialists", body: "Every case is assigned to a specialist who owns it from intake to approval." },
+];
+
+const navItems = [
+  { label: "Nursing Homes", href: "#services" },
+  { label: "PACE Organizations", href: "#services" },
+  { label: "Home Care", href: "#services" },
+  { label: "Individuals", href: "#services" },
+  { label: "Request a Demo", href: "#contact" },
+  { label: "Contact", href: "#contact" },
 ];
 
 function Index() {
@@ -46,17 +81,20 @@ function Index() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <header className="border-b border-border/60 backdrop-blur-sm bg-background/80 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center">
-              <FileCheck className="h-4 w-4 text-primary-foreground" />
+            <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center">
+              <FileCheck className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg tracking-tight">Medicaid<span className="text-accent">.</span>Success</span>
+            <span className="font-serif text-lg tracking-tight leading-tight">
+              Medicaid<br className="hidden sm:inline" />
+              <span className="text-accent">Success</span>
+            </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#portals" className="hover:text-foreground transition">Portals</a>
-            <a href="#process" className="hover:text-foreground transition">Process</a>
-            <a href="#trust" className="hover:text-foreground transition">Trust & Privacy</a>
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-foreground/80">
+            {navItems.map((n) => (
+              <a key={n.label} href={n.href} className="hover:text-primary transition">{n.label}</a>
+            ))}
           </nav>
           <Link
             to="/auth"
@@ -68,132 +106,211 @@ function Index() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 opacity-[0.06]" aria-hidden>
-          <div className="absolute -top-40 -right-40 h-[520px] w-[520px] rounded-full bg-[var(--emerald)] blur-3xl" />
-          <div className="absolute top-60 -left-20 h-[420px] w-[420px] rounded-full bg-[var(--gold)] blur-3xl" />
-        </div>
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-20 pb-12 lg:pt-28 lg:pb-20">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-full px-3 py-1 bg-card">
+      {/* Hero band */}
+      <section className="relative bg-[var(--gradient-emerald)] text-primary-foreground overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-20 mix-blend-overlay"
+          aria-hidden
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 30%, oklch(0.95 0.05 95) 0%, transparent 40%), radial-gradient(circle at 80% 70%, oklch(0.78 0.13 86) 0%, transparent 45%)",
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Medicaid onboarding · est. 2014
+              Long-term care Medicaid planning
             </span>
-            <h1 className="mt-6 font-serif text-5xl lg:text-7xl leading-[1.05] tracking-tight">
-              Onboarding for Medicaid, <em className="text-accent not-italic">made dignified.</em>
+            <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight">
+              Medicaid <span className="text-accent">Success</span>
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              We guide patients, agents, and referral partners through every form, signature, and follow-up — so applications get filed correctly, the first time. Choose your portal below to begin.
+            <p className="mt-6 text-lg lg:text-xl text-primary-foreground/90 max-w-xl leading-relaxed">
+              No matter your long-term care Medicaid planning need, we have a solution for you — for nursing homes, PACE organizations, home care providers, and individuals.
             </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="#contact"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-accent text-accent-foreground font-medium hover:opacity-95 transition"
+              >
+                Request a Demo <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href="#services"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 transition"
+              >
+                Explore solutions
+              </a>
+            </div>
+          </div>
+          <div className="hidden lg:flex justify-end">
+            <div className="aspect-square w-full max-w-md rounded-2xl border border-primary-foreground/20 bg-primary-foreground/5 backdrop-blur-sm p-10 flex flex-col justify-between shadow-[var(--shadow-elegant)]">
+              <FileCheck className="h-12 w-12 text-accent" />
+              <div>
+                <p className="font-serif text-2xl leading-snug">
+                  &ldquo;A highly effective, low-cost way to manage long-term care Medicaid.&rdquo;
+                </p>
+                <p className="mt-4 text-sm text-primary-foreground/70">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Three login portals */}
-      <section id="portals" className="max-w-7xl mx-auto px-6 lg:px-10 pb-24">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {portals.map((p) => {
-            const Icon = p.icon;
+      {/* The Medicaid Success Advantage */}
+      <section id="services" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+        <div className="text-center max-w-2xl mx-auto">
+          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Our Solutions</span>
+          <h2 className="mt-3 font-serif text-4xl lg:text-5xl text-primary">The Medicaid Success Advantage</h2>
+          <p className="mt-5 text-muted-foreground text-lg">
+            No matter your long-term care Medicaid planning need, we have a solution for you.
+          </p>
+        </div>
+
+        <div className="mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {services.map((s) => {
+            const Icon = s.icon;
             return (
-              <Link
-                key={p.role}
-                to="/auth"
-                search={{ role: p.role }}
-                className="group relative flex flex-col rounded-xl border border-border bg-card p-7 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-elegant)]"
-                style={{ boxShadow: "var(--shadow-card)" }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="h-12 w-12 rounded-lg bg-[var(--gradient-emerald)] flex items-center justify-center">
-                    <Icon className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{p.kicker}</span>
+              <div key={s.title} className="flex flex-col items-center text-center group">
+                <div
+                  className="relative h-36 w-36 rounded-full bg-[var(--gradient-emerald)] flex items-center justify-center shadow-[var(--shadow-card)] transition-transform group-hover:-translate-y-1"
+                >
+                  <Icon className="h-14 w-14 text-primary-foreground" strokeWidth={1.5} />
+                  <span className="absolute -bottom-2 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-semibold uppercase tracking-wider">
+                    {s.brand.replace("™", "")}
+                  </span>
                 </div>
-                <h3 className="mt-6 font-serif text-2xl">{p.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{p.description}</p>
-                <ul className="mt-6 space-y-2 text-sm">
-                  {p.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-[var(--emerald)] shrink-0" />
-                      <span className="text-foreground/80">{pt}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-7 pt-6 border-t border-border/70 flex items-center justify-between">
-                  <span className="text-sm font-medium">Sign in or create account</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </div>
-              </Link>
+                <h3 className="mt-8 font-serif text-2xl">{s.title}</h3>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-xs">
+                  {s.description}
+                </p>
+                <a
+                  href="#contact"
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-accent transition"
+                >
+                  View More <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
             );
           })}
         </div>
       </section>
 
-      {/* Process */}
-      <section id="process" className="border-y border-border bg-secondary/40">
+      {/* Why Choose */}
+      <section className="border-y border-border bg-secondary/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
-          <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
-            <div>
-              <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">How it works</span>
-              <h2 className="mt-3 font-serif text-4xl max-w-xl">A single, secure process for every account.</h2>
-            </div>
-            <p className="text-muted-foreground max-w-md">From the moment you sign in, every document, status update, and required action lives in one place — visible to you and your assigned specialist.</p>
-          </div>
-          <div className="grid md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
-            {[
-              { n: "01", t: "Choose your portal", d: "Agent, referral partner, or client — your workspace is tailored to your role." },
-              { n: "02", t: "Upload documents", d: "Securely upload up to 200 files. We accept PDFs, images, and scans." },
-              { n: "03", t: "We compile & file", d: "One click compresses everything into a single, court-ready PDF packet." },
-              { n: "04", t: "Track every check-in", d: "Status timeline + checklist shows exactly what we're doing for you." },
-            ].map((s) => (
-              <div key={s.n} className="bg-background p-7">
-                <div className="font-serif text-accent text-lg">{s.n}</div>
-                <h3 className="mt-3 font-serif text-xl">{s.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Trust */}
-      <section id="trust" className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Trust & Privacy</span>
-            <h2 className="mt-3 font-serif text-4xl">Your records, treated with the seriousness they deserve.</h2>
-            <p className="mt-5 text-muted-foreground leading-relaxed">
-              Every file is encrypted in transit and at rest. Access is scoped to you and the specialist assigned to your case. We never sell data, and we retain only what's required to file your application.
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="font-serif text-4xl text-primary">Why Choose Medicaid Success™?</h2>
+            <p className="mt-4 text-muted-foreground">
+              A team built for long-term care Medicaid — nothing else. That focus is the difference.
             </p>
-            <ul className="mt-8 grid sm:grid-cols-2 gap-4 text-sm">
-              {["End-to-end encryption", "Role-based access controls", "Audit trail on every action", "HIPAA-aligned workflows"].map((t) => (
-                <li key={t} className="flex items-center gap-2"><Lock className="h-4 w-4 text-accent" /> {t}</li>
-              ))}
-            </ul>
           </div>
-          <div className="relative">
-            <div className="aspect-[4/5] rounded-2xl bg-[var(--gradient-emerald)] p-10 flex flex-col justify-between text-primary-foreground shadow-[var(--shadow-elegant)]">
-              <div>
-                <FileCheck className="h-8 w-8 text-accent" />
-                <p className="mt-8 font-serif text-3xl leading-snug">
-                  &ldquo;They turned a stack of paperwork into a single afternoon. My mother had coverage within weeks.&rdquo;
-                </p>
-              </div>
-              <div className="text-sm opacity-80">
-                <div className="font-medium text-primary-foreground">Renata C.</div>
-                <div>Client, approved Spring 2025</div>
-              </div>
-            </div>
+          <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {whyChoose.map((w) => {
+              const Icon = w.icon;
+              return (
+                <div key={w.title} className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+                  <div className="h-11 w-11 rounded-lg bg-[var(--gradient-emerald)] flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <h3 className="mt-5 font-serif text-xl">{w.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{w.body}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-border">
+      {/* Contact */}
+      <section id="contact" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+        <div className="grid lg:grid-cols-2 gap-14">
+          <div>
+            <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Get in touch</span>
+            <h2 className="mt-3 font-serif text-4xl text-primary">Contact Medicaid Success™ Today</h2>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              Speak with a long-term care Medicaid specialist about your facility, organization, or family situation.
+            </p>
+            <ul className="mt-8 space-y-4 text-sm">
+              <li className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-accent" />
+                <span className="font-medium">PHONE:</span>
+                <a href="tel:+18886156144" className="hover:text-primary">888-615-6144</a>
+              </li>
+              <li className="flex items-center gap-3">
+                <Printer className="h-4 w-4 text-accent" />
+                <span className="font-medium">FAX:</span>
+                <span>888-742-4711</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-accent" />
+                <a href="mailto:info@medicaidsuccess.com" className="hover:text-primary">info@medicaidsuccess.com</a>
+              </li>
+            </ul>
+            <p className="mt-8 text-xs text-muted-foreground italic">
+              Medicaid Success is not a free service, nor is it a government agency.
+            </p>
+          </div>
+
+          <form
+            className="rounded-xl border border-border bg-card p-7 shadow-[var(--shadow-card)] space-y-4"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="First Name" type="text" name="firstName" />
+              <Field label="Last Name" type="text" name="lastName" />
+              <Field label="Email" type="email" name="email" />
+              <Field label="Phone" type="tel" name="phone" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground/80 uppercase tracking-wider">Type of Inquiry</label>
+              <select className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option>Nursing Home Resident</option>
+                <option>Nursing Home Facility</option>
+                <option>PACE Organization</option>
+                <option>Home Care Provider</option>
+                <option>Individual / Family</option>
+              </select>
+            </div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+              <input type="checkbox" className="mt-0.5" />
+              <span>I agree to receive SMS text messages from Medicaid Success regarding my inquiry. Message frequency may vary. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not a condition of submission.</span>
+            </label>
+            <button
+              type="submit"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-95 transition"
+            >
+              Submit <ArrowRight className="h-4 w-4" />
+            </button>
+            <p className="text-xs text-muted-foreground">
+              <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
+            </p>
+          </form>
+        </div>
+      </section>
+
+      <footer className="border-t border-border bg-secondary/40">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>© {new Date().getFullYear()} Medicaid Success. All rights reserved.</span>
-          <span className="font-serif italic">Onboarding for Medicaid, made dignified.</span>
+          <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function Field({ label, type, name }: { label: string; type: string; name: string }) {
+  return (
+    <div>
+      <label htmlFor={name} className="text-xs font-medium text-foreground/80 uppercase tracking-wider">
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      />
     </div>
   );
 }
