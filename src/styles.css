@@ -69,25 +69,25 @@
 :root {
   --radius: 0.5rem;
   /* Emerald Prestige: deep emerald + warm gold + cream */
-  --background: oklch(0.985 0.012 95);          /* cream */
-  --foreground: oklch(0.22 0.05 160);           /* deep emerald-ink */
+  --background: oklch(0.985 0.010 95);          /* cream */
+  --foreground: oklch(0.18 0.04 160);           /* near-black emerald ink for max readability */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.05 160);
+  --card-foreground: oklch(0.18 0.04 160);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.05 160);
-  --primary: oklch(0.33 0.09 160);              /* deep emerald #064e3b-ish */
+  --popover-foreground: oklch(0.18 0.04 160);
+  --primary: oklch(0.30 0.09 160);              /* deep emerald — strong contrast on cream */
   --primary-foreground: oklch(0.97 0.02 95);
-  --secondary: oklch(0.94 0.02 95);             /* parchment */
-  --secondary-foreground: oklch(0.28 0.07 160);
-  --muted: oklch(0.94 0.02 95);
-  --muted-foreground: oklch(0.42 0.03 160);
-  --accent: oklch(0.76 0.13 86);                /* gold #c9a84c */
-  --accent-foreground: oklch(0.22 0.05 160);
+  --secondary: oklch(0.95 0.018 95);            /* parchment */
+  --secondary-foreground: oklch(0.22 0.06 160);
+  --muted: oklch(0.94 0.018 95);
+  --muted-foreground: oklch(0.34 0.035 160);    /* darker muted text — AA on cream */
+  --accent: oklch(0.70 0.13 82);                /* warm gold, slightly deeper for legibility */
+  --accent-foreground: oklch(0.18 0.04 160);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.98 0.01 95);
-  --border: oklch(0.88 0.02 110);
-  --input: oklch(0.92 0.015 110);
-  --ring: oklch(0.45 0.10 160);
+  --border: oklch(0.84 0.02 110);
+  --input: oklch(0.90 0.015 110);
+  --ring: oklch(0.40 0.10 160);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);

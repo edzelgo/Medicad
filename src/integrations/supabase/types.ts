@@ -133,18 +133,21 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["portal_role"]
+          status: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["portal_role"]
+          status?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["portal_role"]
+          status?: string
           user_id?: string
         }
         Relationships: []
@@ -154,6 +157,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["portal_role"]
+          _status?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["portal_role"]
@@ -163,7 +174,7 @@ export type Database = {
       }
     }
     Enums: {
-      portal_role: "agent" | "referral" | "client"
+      portal_role: "agent" | "referral" | "client" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -291,7 +302,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      portal_role: ["agent", "referral", "client"],
+      portal_role: ["agent", "referral", "client", "admin"],
     },
   },
 } as const
