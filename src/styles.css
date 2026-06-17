@@ -166,3 +166,50 @@
     letter-spacing: -0.01em;
   }
 }
+
+/*
+ * Accessibility modes for the portal:
+ *   .a11y-large     — bumps the root font size and tightens line-height
+ *                     for larger, more readable body copy and buttons.
+ *   .a11y-contrast  — drives every semantic token to near-AAA contrast
+ *                     (pure black on cream, full-strength borders,
+ *                     deeper accent text) and adds a visible focus ring.
+ * Toggled by <ReadabilityToggle /> writing classes on <html>.
+ */
+
+html.a11y-large {
+  font-size: 18px;
+}
+html.a11y-large body {
+  line-height: 1.65;
+  letter-spacing: 0.005em;
+}
+html.a11y-large .text-xs   { font-size: 0.85rem; }
+html.a11y-large .text-sm   { font-size: 0.98rem; }
+
+html.a11y-contrast {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.12 0.02 160);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0.02 160);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0.02 160);
+  --primary: oklch(0.22 0.08 160);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.012 95);
+  --secondary-foreground: oklch(0.12 0.02 160);
+  --muted: oklch(0.94 0.012 95);
+  --muted-foreground: oklch(0.22 0.04 160); /* near body color — no more grey text */
+  --accent: oklch(0.55 0.13 78);            /* darker gold so accent text is readable */
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(0.55 0.03 160);
+  --input: oklch(0.55 0.03 160);
+  --ring: oklch(0.22 0.08 160);
+}
+
+html.a11y-contrast :is(a, button, [role="button"]):focus-visible,
+html.a11y-contrast :is(input, textarea, select):focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: none;
+}

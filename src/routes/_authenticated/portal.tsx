@@ -7,6 +7,7 @@ import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { ReadabilityToggle } from "@/components/readability-toggle";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
@@ -202,7 +203,10 @@ function PortalPage() {
               <div className="font-medium">{profile?.full_name ?? email}</div>
               <div className="text-xs text-muted-foreground">{email}</div>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-2" /> Sign out</Button>
+            <ReadabilityToggle />
+            <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sign out">
+              <LogOut className="h-4 w-4 mr-2" aria-hidden="true" /> Sign out
+            </Button>
           </div>
         </div>
       </header>
