@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ReadabilityToggle } from "@/components/readability-toggle";
+import { SupportChatbot } from "@/components/support-chatbot";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
@@ -356,6 +357,7 @@ function PortalPage() {
           <Sparkles className="h-3 w-3 text-accent" /> Files are encrypted in transit and at rest. Only you and your specialist can access them.
         </div>
       </main>
+      <SupportChatbot role={(role === "agent" || role === "referral") ? role : "client"} />
     </div>
   );
 }
