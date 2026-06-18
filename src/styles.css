@@ -80,7 +80,7 @@
   --secondary: oklch(0.95 0.018 95);            /* parchment */
   --secondary-foreground: oklch(0.22 0.06 160);
   --muted: oklch(0.94 0.018 95);
-  --muted-foreground: oklch(0.34 0.035 160);    /* darker muted text — AA on cream */
+  --muted-foreground: oklch(0.28 0.04 160);     /* near-body contrast on cream — AAA on body copy */
   --accent: oklch(0.70 0.13 82);                /* warm gold, slightly deeper for legibility */
   --accent-foreground: oklch(0.18 0.04 160);
   --destructive: oklch(0.55 0.22 27);
@@ -159,6 +159,8 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    font-size: 17px;
+    line-height: 1.6;
   }
 
   h1, h2, h3, .font-serif {

@@ -16,6 +16,11 @@ import {
   DollarSign,
   Users as UsersIcon,
 } from "lucide-react";
+import heroCouple from "@/assets/hero-elderly-couple.jpg";
+import imgNursingHome from "@/assets/service-nursing-home.jpg";
+import imgPace from "@/assets/service-pace.jpg";
+import imgHomeCare from "@/assets/service-home-care.jpg";
+import imgIndividuals from "@/assets/service-individuals.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +41,8 @@ const services = [
     description: "A highly effective and low-cost way to manage your facility's Medicaid population.",
     icon: Building2,
     href: "/services/nursing-homes",
+    image: imgNursingHome,
+    alt: "Nurse helping an elderly woman with paperwork in a nursing home",
   },
   {
     title: "PACE Organizations",
@@ -43,6 +50,8 @@ const services = [
     description: "A low-cost solution for all of your Medicaid application needs.",
     icon: HeartHandshake,
     href: "/services/pace",
+    image: imgPace,
+    alt: "Elderly man laughing with a caregiver at a PACE day program",
   },
   {
     title: "Home Care",
@@ -50,6 +59,8 @@ const services = [
     description: "Designed to work directly with home care agencies to help prospective clients with full Medicaid eligibility needs.",
     icon: Home,
     href: "/services/home-care",
+    image: imgHomeCare,
+    alt: "Home care aide assisting an elderly woman in her living room",
   },
   {
     title: "Individuals",
@@ -57,6 +68,8 @@ const services = [
     description: "We take over the challenging process of protecting your assets and applying for LTC Medicaid.",
     icon: User,
     href: "/services/individuals",
+    image: imgIndividuals,
+    alt: "Adult daughter and elderly father reviewing documents together",
   },
 ];
 
@@ -144,15 +157,21 @@ function Index() {
             </div>
           </div>
           <div className="hidden lg:flex justify-end">
-            <div className="aspect-square w-full max-w-md rounded-2xl border border-primary-foreground/20 bg-primary-foreground/5 backdrop-blur-sm p-10 flex flex-col justify-between shadow-[var(--shadow-elegant)]">
-              <FileCheck className="h-12 w-12 text-accent" />
-              <div>
-                <p className="font-serif text-2xl leading-snug">
+            <figure className="relative w-full max-w-md rounded-2xl overflow-hidden border border-primary-foreground/20 shadow-[var(--shadow-elegant)]">
+              <img
+                src={heroCouple}
+                alt="Smiling elderly couple holding hands in a sunlit nursing home"
+                width={1024}
+                height={1024}
+                className="w-full h-full object-cover aspect-square"
+              />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-deep/90 via-emerald-deep/60 to-transparent p-6">
+                <p className="font-serif text-xl leading-snug text-primary-foreground">
                   &ldquo;A highly effective, low-cost way to manage long-term care Medicaid.&rdquo;
                 </p>
-                <p className="mt-4 text-sm text-primary-foreground/70">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
-              </div>
-            </div>
+                <p className="mt-2 text-sm text-primary-foreground/90">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
@@ -172,21 +191,28 @@ function Index() {
             const Icon = s.icon;
             return (
               <div key={s.title} className="flex flex-col items-center text-center group">
-                <div
-                  className="relative h-36 w-36 rounded-full bg-[var(--gradient-emerald)] flex items-center justify-center shadow-[var(--shadow-card)] transition-transform group-hover:-translate-y-1"
-                >
-                  <Icon className="h-14 w-14 text-primary-foreground" strokeWidth={1.5} />
-                  <span className="absolute -bottom-2 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-semibold uppercase tracking-wider">
+                <div className="relative h-44 w-44 rounded-full overflow-hidden shadow-[var(--shadow-card)] ring-4 ring-card transition-transform group-hover:-translate-y-1">
+                  <img
+                    src={s.image}
+                    alt={s.alt}
+                    width={1024}
+                    height={768}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-emerald-deep/25" aria-hidden />
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
+                    <Icon className="h-3 w-3" strokeWidth={2.5} />
                     {s.brand.replace("™", "")}
-                  </span>
+                  </div>
                 </div>
-                <h3 className="mt-8 font-serif text-2xl">{s.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-xs">
+                <h3 className="mt-7 font-serif text-2xl text-foreground">{s.title}</h3>
+                <p className="mt-3 text-base text-foreground/80 leading-relaxed max-w-xs">
                   {s.description}
                 </p>
                 <a
                   href="#contact"
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-accent transition"
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-accent transition"
                 >
                   View More <ArrowRight className="h-3.5 w-3.5" />
                 </a>
