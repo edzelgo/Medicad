@@ -16,6 +16,11 @@ import {
   DollarSign,
   Users as UsersIcon,
 } from "lucide-react";
+import heroCouple from "@/assets/hero-elderly-couple.jpg";
+import imgNursingHome from "@/assets/service-nursing-home.jpg";
+import imgPace from "@/assets/service-pace.jpg";
+import imgHomeCare from "@/assets/service-home-care.jpg";
+import imgIndividuals from "@/assets/service-individuals.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +41,8 @@ const services = [
     description: "A highly effective and low-cost way to manage your facility's Medicaid population.",
     icon: Building2,
     href: "/services/nursing-homes",
+    image: imgNursingHome,
+    alt: "Nurse helping an elderly woman with paperwork in a nursing home",
   },
   {
     title: "PACE Organizations",
@@ -43,6 +50,8 @@ const services = [
     description: "A low-cost solution for all of your Medicaid application needs.",
     icon: HeartHandshake,
     href: "/services/pace",
+    image: imgPace,
+    alt: "Elderly man laughing with a caregiver at a PACE day program",
   },
   {
     title: "Home Care",
@@ -50,6 +59,8 @@ const services = [
     description: "Designed to work directly with home care agencies to help prospective clients with full Medicaid eligibility needs.",
     icon: Home,
     href: "/services/home-care",
+    image: imgHomeCare,
+    alt: "Home care aide assisting an elderly woman in her living room",
   },
   {
     title: "Individuals",
@@ -57,6 +68,8 @@ const services = [
     description: "We take over the challenging process of protecting your assets and applying for LTC Medicaid.",
     icon: User,
     href: "/services/individuals",
+    image: imgIndividuals,
+    alt: "Adult daughter and elderly father reviewing documents together",
   },
 ];
 
