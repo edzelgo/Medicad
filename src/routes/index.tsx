@@ -157,15 +157,21 @@ function Index() {
             </div>
           </div>
           <div className="hidden lg:flex justify-end">
-            <div className="aspect-square w-full max-w-md rounded-2xl border border-primary-foreground/20 bg-primary-foreground/5 backdrop-blur-sm p-10 flex flex-col justify-between shadow-[var(--shadow-elegant)]">
-              <FileCheck className="h-12 w-12 text-accent" />
-              <div>
-                <p className="font-serif text-2xl leading-snug">
+            <figure className="relative w-full max-w-md rounded-2xl overflow-hidden border border-primary-foreground/20 shadow-[var(--shadow-elegant)]">
+              <img
+                src={heroCouple}
+                alt="Smiling elderly couple holding hands in a sunlit nursing home"
+                width={1024}
+                height={1024}
+                className="w-full h-full object-cover aspect-square"
+              />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-deep/90 via-emerald-deep/60 to-transparent p-6">
+                <p className="font-serif text-xl leading-snug text-primary-foreground">
                   &ldquo;A highly effective, low-cost way to manage long-term care Medicaid.&rdquo;
                 </p>
-                <p className="mt-4 text-sm text-primary-foreground/70">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
-              </div>
-            </div>
+                <p className="mt-2 text-sm text-primary-foreground/90">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
