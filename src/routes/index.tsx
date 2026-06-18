@@ -191,21 +191,28 @@ function Index() {
             const Icon = s.icon;
             return (
               <div key={s.title} className="flex flex-col items-center text-center group">
-                <div
-                  className="relative h-36 w-36 rounded-full bg-[var(--gradient-emerald)] flex items-center justify-center shadow-[var(--shadow-card)] transition-transform group-hover:-translate-y-1"
-                >
-                  <Icon className="h-14 w-14 text-primary-foreground" strokeWidth={1.5} />
-                  <span className="absolute -bottom-2 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-semibold uppercase tracking-wider">
+                <div className="relative h-44 w-44 rounded-full overflow-hidden shadow-[var(--shadow-card)] ring-4 ring-card transition-transform group-hover:-translate-y-1">
+                  <img
+                    src={s.image}
+                    alt={s.alt}
+                    width={1024}
+                    height={768}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-emerald-deep/25" aria-hidden />
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
+                    <Icon className="h-3 w-3" strokeWidth={2.5} />
                     {s.brand.replace("™", "")}
-                  </span>
+                  </div>
                 </div>
-                <h3 className="mt-8 font-serif text-2xl">{s.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-xs">
+                <h3 className="mt-7 font-serif text-2xl text-foreground">{s.title}</h3>
+                <p className="mt-3 text-base text-foreground/80 leading-relaxed max-w-xs">
                   {s.description}
                 </p>
                 <a
                   href="#contact"
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-accent transition"
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-accent transition"
                 >
                   View More <ArrowRight className="h-3.5 w-3.5" />
                 </a>
