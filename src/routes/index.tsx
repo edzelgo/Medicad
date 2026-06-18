@@ -99,9 +99,9 @@ function Index() {
             <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center">
               <FileCheck className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg tracking-tight leading-tight">
+            <span className="font-serif text-lg tracking-tight leading-tight text-foreground">
               Medicaid<br className="hidden sm:inline" />
-              <span className="text-accent">Success</span>
+              <span className="text-primary">Success</span>
             </span>
           </Link>
           <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-foreground/80">
@@ -212,7 +212,7 @@ function Index() {
                 </p>
                 <a
                   href="#contact"
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-accent transition"
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 underline-offset-4 hover:underline transition"
                 >
                   View More <ArrowRight className="h-3.5 w-3.5" />
                 </a>
@@ -259,17 +259,17 @@ function Index() {
             </p>
             <ul className="mt-8 space-y-4 text-sm">
               <li className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-accent" />
+                <Phone className="h-4 w-4 text-primary" aria-hidden />
                 <span className="font-medium">PHONE:</span>
                 <a href="tel:+18886156144" className="hover:text-primary">888-615-6144</a>
               </li>
               <li className="flex items-center gap-3">
-                <Printer className="h-4 w-4 text-accent" />
+                <Printer className="h-4 w-4 text-primary" aria-hidden />
                 <span className="font-medium">FAX:</span>
                 <span>888-742-4711</span>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-accent" />
+                <Mail className="h-4 w-4 text-primary" aria-hidden />
                 <a href="mailto:info@medicaidsuccess.com" className="hover:text-primary">info@medicaidsuccess.com</a>
               </li>
             </ul>
