@@ -328,6 +328,44 @@ function PortalPage() {
 
         {/* Documents */}
         <section className="rounded-xl border border-border bg-card overflow-hidden">
+          {/* Required documents checklist */}
+          <div className="p-7 border-b border-border bg-secondary/30">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+                  <ClipboardList className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+                </div>
+                <div>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Required documents</span>
+                  <h2 className="font-serif text-2xl mt-1">Your Medicaid application checklist</h2>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                    Upload the items below so your specialist can build your application. Each box checks itself once a matching file appears in your vault.
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-serif text-primary">{requirementsDone}<span className="text-muted-foreground text-base"> / {REQUIRED_DOCUMENTS.length}</span></div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1">Submitted</div>
+              </div>
+            </div>
+            <div className="mt-5">
+              <Progress value={requirementsPct} aria-label="Required documents progress" />
+            </div>
+            <ul className="mt-6 grid sm:grid-cols-2 gap-x-6 gap-y-3">
+              {requirementsState.map((r) => (
+                <li key={r.label} className="flex items-start gap-3">
+                  {r.satisfied
+                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" aria-label="Submitted" />
+                    : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 shrink-0" aria-label="Not yet submitted" />}
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${r.satisfied ? "text-foreground" : "text-foreground"}`}>{r.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{r.hint}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div className="p-7 border-b border-border flex items-center justify-between flex-wrap gap-4">
             <div>
               <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Documents</span>
