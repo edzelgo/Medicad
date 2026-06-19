@@ -80,8 +80,8 @@
   --secondary: oklch(0.95 0.018 95);            /* parchment */
   --secondary-foreground: oklch(0.22 0.06 160);
   --muted: oklch(0.94 0.018 95);
-  --muted-foreground: oklch(0.24 0.04 160);     /* darker — readable body/secondary copy on cream */
-  --accent: oklch(0.62 0.13 78);                /* deeper warm gold — readable on dark hero, not washed out */
+  --muted-foreground: oklch(0.20 0.04 160);     /* near-foreground — fully readable secondary copy */
+  --accent: oklch(0.58 0.13 78);                /* deeper warm gold — readable on dark hero, not washed out */
   --accent-foreground: oklch(0.18 0.04 160);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.98 0.01 95);
