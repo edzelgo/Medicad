@@ -21,6 +21,10 @@ import imgNursingHome from "@/assets/service-nursing-home.jpg";
 import imgPace from "@/assets/service-pace.jpg";
 import imgHomeCare from "@/assets/service-home-care.jpg";
 import imgIndividuals from "@/assets/service-individuals.jpg";
+import portrait1 from "@/assets/senior-portrait-1.jpg";
+import portrait2 from "@/assets/senior-portrait-2.jpg";
+import seniorFamily from "@/assets/senior-family.jpg";
+import seniorCommunity from "@/assets/senior-community.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -78,6 +82,21 @@ const whyChoose = [
   { icon: DollarSign, title: "Low cost, high value", body: "Transparent pricing that reduces the administrative burden on your facility or family." },
   { icon: Clock, title: "Fast turnarounds", body: "We move applications through quickly so coverage starts when it's needed." },
   { icon: UsersIcon, title: "Dedicated specialists", body: "Every case is assigned to a specialist who owns it from intake to approval." },
+];
+
+const testimonials = [
+  {
+    quote: "They walked our family through every form and every deadline. Mom's coverage started the month she moved in.",
+    name: "Linda T.",
+    role: "Daughter of a resident",
+    photo: portrait1,
+  },
+  {
+    quote: "After years of running our own Medicaid desk, switching cut our paperwork in half and approvals came faster.",
+    name: "Robert M.",
+    role: "Nursing home administrator",
+    photo: portrait2,
+  },
 ];
 
 const navItems = [
@@ -248,6 +267,78 @@ function Index() {
         </div>
       </section>
 
+      {/* Community band */}
+      <section className="relative overflow-hidden">
+        <div className="grid lg:grid-cols-2">
+          <div className="relative min-h-[360px]">
+            <img
+              src={seniorCommunity}
+              alt="Group of seniors laughing together while playing cards in a community room"
+              width={1536}
+              height={1024}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+          <div className="bg-[var(--gradient-emerald)] text-primary-foreground p-10 lg:p-16 flex items-center">
+            <div>
+              <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">Dignity, comfort, community</span>
+              <h2 className="mt-3 font-serif text-3xl lg:text-4xl leading-tight">
+                The people we serve come first.
+              </h2>
+              <p className="mt-5 text-base lg:text-lg text-primary-foreground leading-relaxed">
+                Behind every Medicaid application is a parent, a grandparent, a neighbor — someone who deserves to age with dignity and the care they need. We handle the paperwork so families can focus on what matters most.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+        <div className="text-center max-w-2xl mx-auto">
+          <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Voices we serve</span>
+          <h2 className="mt-3 font-serif text-4xl text-primary">Families and facilities trust us</h2>
+        </div>
+        <div className="mt-12 grid md:grid-cols-2 gap-8">
+          {testimonials.map((t) => (
+            <figure
+              key={t.name}
+              className="rounded-2xl border border-border bg-card p-7 shadow-[var(--shadow-card)] flex flex-col sm:flex-row gap-6 items-start"
+            >
+              <img
+                src={t.photo}
+                alt={`Portrait of ${t.name}`}
+                width={1024}
+                height={1024}
+                loading="lazy"
+                className="h-24 w-24 rounded-full object-cover ring-4 ring-secondary shrink-0"
+              />
+              <div>
+                <blockquote className="font-serif text-lg leading-relaxed text-foreground">
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+                <figcaption className="mt-4 text-sm">
+                  <span className="font-semibold text-foreground">{t.name}</span>
+                  <span className="text-foreground"> — {t.role}</span>
+                </figcaption>
+              </div>
+            </figure>
+          ))}
+        </div>
+
+        <div className="mt-12 rounded-2xl overflow-hidden border border-border shadow-[var(--shadow-card)] relative">
+          <img
+            src={seniorFamily}
+            alt="Adult daughter hugging her smiling elderly mother in a bright common room"
+            width={1536}
+            height={1024}
+            loading="lazy"
+            className="w-full h-72 lg:h-96 object-cover"
+          />
+        </div>
+      </section>
+
       {/* Contact */}
       <section id="contact" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="grid lg:grid-cols-2 gap-14">
@@ -273,7 +364,7 @@ function Index() {
                 <a href="mailto:info@medicaidsuccess.com" className="hover:text-primary">info@medicaidsuccess.com</a>
               </li>
             </ul>
-            <p className="mt-8 text-xs text-foreground/80 italic">
+            <p className="mt-8 text-xs text-foreground italic">
               Medicaid Success is not a free service, nor is it a government agency.
             </p>
           </div>
@@ -289,7 +380,7 @@ function Index() {
               <Field label="Phone" type="tel" name="phone" />
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground/80 uppercase tracking-wider">Type of Inquiry</label>
+              <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Type of Inquiry</label>
               <select className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option>Nursing Home Resident</option>
                 <option>Nursing Home Facility</option>
@@ -308,7 +399,7 @@ function Index() {
             >
               Submit <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="text-xs text-foreground/80">
+            <p className="text-xs text-foreground">
               <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
             </p>
           </form>
@@ -316,7 +407,7 @@ function Index() {
       </section>
 
       <footer className="border-t border-border bg-secondary/40">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground/80">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground">
           <span>© {new Date().getFullYear()} Medicaid Success. All rights reserved.</span>
           <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
         </div>
@@ -328,7 +419,7 @@ function Index() {
 function Field({ label, type, name }: { label: string; type: string; name: string }) {
   return (
     <div>
-      <label htmlFor={name} className="text-xs font-medium text-foreground/80 uppercase tracking-wider">
+      <label htmlFor={name} className="text-xs font-semibold text-foreground uppercase tracking-wider">
         {label}
       </label>
       <input
