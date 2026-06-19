@@ -110,6 +110,14 @@ function PortalPage() {
   const completedTasks = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
+  // Compute which required documents have at least one matching upload.
+  const requirementsState = REQUIRED_DOCUMENTS.map((req) => ({
+    ...req,
+    satisfied: docs.some((d) => req.match.test(d.name)),
+  }));
+  const requirementsDone = requirementsState.filter((r) => r.satisfied).length;
+  const requirementsPct = Math.round((requirementsDone / REQUIRED_DOCUMENTS.length) * 100);
+
   // Upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
