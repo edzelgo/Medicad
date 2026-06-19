@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { MessageCircle, X, Send, Lock } from "lucide-react";
 import { chatWithSupport } from "@/lib/chatbot.functions";
+import ReactMarkdown from "react-markdown";
 
 type Role = "client" | "agent" | "referral";
 type Msg = { role: "user" | "assistant"; content: string };
@@ -106,14 +107,18 @@ export function SupportChatbot({ role = "client" }: { role?: Role }) {
               return (
                 <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
-                    className="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed"
+                    className="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed chatbot-md"
                     style={
                       isUser
                         ? { background: config.color, color: "#fff", borderBottomRightRadius: 4 }
                         : { background: config.accent, color: "#1a1a1a", borderBottomLeftRadius: 4 }
                     }
                   >
-                    {m.content}
+                    {isUser ? (
+                      <span className="whitespace-pre-wrap">{m.content}</span>
+                    ) : (
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    )}
                   </div>
                 </div>
               );
@@ -164,7 +169,17 @@ export function SupportChatbot({ role = "client" }: { role?: Role }) {
             </button>
           </div>
 
-          <style>{`@keyframes chatbot-bounce { 0%,60%,100% { transform: translateY(0); opacity:.6 } 30% { transform: translateY(-4px); opacity:1 } }`}</style>
+          <style>{`
+            @keyframes chatbot-bounce { 0%,60%,100% { transform: translateY(0); opacity:.6 } 30% { transform: translateY(-4px); opacity:1 } }
+            .chatbot-md p { margin: 0 0 0.5em; }
+            .chatbot-md p:last-child { margin-bottom: 0; }
+            .chatbot-md h1, .chatbot-md h2, .chatbot-md h3, .chatbot-md h4 { font-weight: 700; margin: 0.4em 0 0.3em; font-size: 1em; }
+            .chatbot-md ul, .chatbot-md ol { margin: 0.3em 0; padding-left: 1.2em; }
+            .chatbot-md li { margin: 0.15em 0; }
+            .chatbot-md strong { font-weight: 700; }
+            .chatbot-md code { background: rgba(0,0,0,0.06); padding: 0 0.25em; border-radius: 3px; font-size: 0.9em; }
+            .chatbot-md a { text-decoration: underline; }
+          `}</style>
         </div>
       )}
     </>
