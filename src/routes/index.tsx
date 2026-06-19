@@ -104,7 +104,7 @@ function Index() {
               <span className="text-primary">Success</span>
             </span>
           </Link>
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-foreground/80">
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-foreground">
             {navItems.map((n) => (
               <a key={n.label} href={n.href} className="hover:text-primary transition">{n.label}</a>
             ))}
@@ -131,14 +131,14 @@ function Index() {
         />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-primary-foreground font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Long-term care Medicaid planning
             </span>
             <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight">
-              Medicaid <span className="text-accent">Success</span>
+              Medicaid <span className="text-accent font-bold">Success</span>
             </h1>
-            <p className="mt-6 text-lg lg:text-xl text-primary-foreground/90 max-w-xl leading-relaxed">
+            <p className="mt-6 text-lg lg:text-xl text-primary-foreground max-w-xl leading-relaxed">
               No matter your long-term care Medicaid planning need, we have a solution for you — for nursing homes, PACE organizations, home care providers, and individuals.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -150,7 +150,7 @@ function Index() {
               </a>
               <a
                 href="#services"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 transition"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-primary-foreground/60 text-primary-foreground hover:bg-primary-foreground/10 transition"
               >
                 Explore solutions
               </a>
@@ -169,7 +169,7 @@ function Index() {
                 <p className="font-serif text-xl leading-snug text-primary-foreground">
                   &ldquo;A highly effective, low-cost way to manage long-term care Medicaid.&rdquo;
                 </p>
-                <p className="mt-2 text-sm text-primary-foreground/90">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
+                <p className="mt-2 text-sm text-primary-foreground">Trusted by nursing homes, PACE organizations & home care nationwide.</p>
               </figcaption>
             </figure>
           </div>
@@ -179,9 +179,9 @@ function Index() {
       {/* The Medicaid Success Advantage */}
       <section id="services" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="text-center max-w-2xl mx-auto">
-          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Our Solutions</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Our Solutions</span>
           <h2 className="mt-3 font-serif text-4xl lg:text-5xl text-primary">The Medicaid Success Advantage</h2>
-          <p className="mt-5 text-muted-foreground text-lg">
+          <p className="mt-5 text-foreground text-lg">
             No matter your long-term care Medicaid planning need, we have a solution for you.
           </p>
         </div>
@@ -207,7 +207,7 @@ function Index() {
                   </div>
                 </div>
                 <h3 className="mt-7 font-serif text-2xl text-foreground">{s.title}</h3>
-                <p className="mt-3 text-base text-foreground/80 leading-relaxed max-w-xs">
+                <p className="mt-3 text-base text-foreground leading-relaxed max-w-xs">
                   {s.description}
                 </p>
                 <a
@@ -227,7 +227,7 @@ function Index() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
           <div className="text-center max-w-2xl mx-auto">
             <h2 className="font-serif text-4xl text-primary">Why Choose Medicaid Success™?</h2>
-            <p className="mt-4 text-muted-foreground">
+            <p className="mt-4 text-foreground">
               A team built for long-term care Medicaid — nothing else. That focus is the difference.
             </p>
           </div>
@@ -239,8 +239,8 @@ function Index() {
                   <div className="h-11 w-11 rounded-lg bg-[var(--gradient-emerald)] flex items-center justify-center">
                     <Icon className="h-5 w-5 text-primary-foreground" />
                   </div>
-                  <h3 className="mt-5 font-serif text-xl">{w.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{w.body}</p>
+                  <h3 className="mt-5 font-serif text-xl text-foreground">{w.title}</h3>
+                  <p className="mt-2 text-sm text-foreground/90 leading-relaxed">{w.body}</p>
                 </div>
               );
             })}
@@ -252,9 +252,9 @@ function Index() {
       <section id="contact" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="grid lg:grid-cols-2 gap-14">
           <div>
-            <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Get in touch</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Get in touch</span>
             <h2 className="mt-3 font-serif text-4xl text-primary">Contact Medicaid Success™ Today</h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <p className="mt-4 text-foreground leading-relaxed">
               Speak with a long-term care Medicaid specialist about your facility, organization, or family situation.
             </p>
             <ul className="mt-8 space-y-4 text-sm">
@@ -273,7 +273,7 @@ function Index() {
                 <a href="mailto:info@medicaidsuccess.com" className="hover:text-primary">info@medicaidsuccess.com</a>
               </li>
             </ul>
-            <p className="mt-8 text-xs text-muted-foreground italic">
+            <p className="mt-8 text-xs text-foreground/80 italic">
               Medicaid Success is not a free service, nor is it a government agency.
             </p>
           </div>
@@ -298,7 +298,7 @@ function Index() {
                 <option>Individual / Family</option>
               </select>
             </div>
-            <label className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+            <label className="flex items-start gap-2 text-xs text-foreground leading-relaxed">
               <input type="checkbox" className="mt-0.5" />
               <span>I agree to receive SMS text messages from Medicaid Success regarding my inquiry. Message frequency may vary. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not a condition of submission.</span>
             </label>
@@ -308,7 +308,7 @@ function Index() {
             >
               Submit <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/80">
               <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
             </p>
           </form>
@@ -316,7 +316,7 @@ function Index() {
       </section>
 
       <footer className="border-t border-border bg-secondary/40">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground/80">
           <span>© {new Date().getFullYear()} Medicaid Success. All rights reserved.</span>
           <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
         </div>
