@@ -12,11 +12,31 @@ import { SupportChatbot } from "@/components/support-chatbot";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
-  CheckCircle2, Circle, Clock, Sparkles, ChevronRight,
+  CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList,
 } from "lucide-react";
 
 const MAX_FILES = 200;
 const MAX_FILE_MB = 25;
+
+// Standard documents an individual must submit for a long-term care
+// Medicaid application. Each item lists keyword patterns we match against
+// the names of uploaded documents to auto-check the box.
+const REQUIRED_DOCUMENTS: { label: string; hint: string; match: RegExp }[] = [
+  { label: "Government-issued photo ID",       hint: "Driver's license, state ID, or passport",                              match: /(\bid\b|driver|license|passport|state[\s_-]?id)/i },
+  { label: "Social Security card",             hint: "Applicant and spouse if married",                                      match: /(social|ssn|ss[\s_-]?card)/i },
+  { label: "Medicare card",                    hint: "Front and back",                                                       match: /medicare/i },
+  { label: "Birth certificate",                hint: "Proof of age and citizenship",                                         match: /(birth|certificate)/i },
+  { label: "Marriage certificate",             hint: "If currently or previously married",                                   match: /(marriage|marri)/i },
+  { label: "Proof of income (last 3 months)",  hint: "Social Security, pension, annuity, or wage statements",                match: /(income|pension|wage|paystub|pay[\s_-]?stub|annuity|ssa)/i },
+  { label: "Bank statements (last 60 months)", hint: "All checking, savings, and money-market accounts",                     match: /(bank|checking|savings|statement)/i },
+  { label: "Life insurance policies",          hint: "Declaration page and cash-value statement",                            match: /(life[\s_-]?insurance|policy)/i },
+  { label: "Health insurance card",            hint: "Any supplemental or long-term care coverage",                          match: /(health[\s_-]?insurance|insurance[\s_-]?card|supplement)/i },
+  { label: "Deed / mortgage statement",        hint: "Required if you own real property",                                    match: /(deed|mortgage|property|real[\s_-]?estate)/i },
+  { label: "Vehicle title or registration",    hint: "For every vehicle owned",                                              match: /(title|registration|vehicle|auto)/i },
+  { label: "Burial / funeral contract",        hint: "Prepaid burial or funeral arrangements, if any",                       match: /(burial|funeral|cemetery)/i },
+  { label: "Power of attorney",                hint: "Financial or healthcare POA documents",                                 match: /(power[\s_-]?of[\s_-]?attorney|poa)/i },
+  { label: "Medical / facility records",       hint: "Admission paperwork or physician's level-of-care assessment",          match: /(medical|physician|admission|facility|level[\s_-]?of[\s_-]?care)/i },
+];
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "Your Portal — Medicaid Success" }] }),
@@ -89,6 +109,14 @@ function PortalPage() {
   const tasks = tasksQ.data ?? [];
   const completedTasks = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  // Compute which required documents have at least one matching upload.
+  const requirementsState = REQUIRED_DOCUMENTS.map((req) => ({
+    ...req,
+    satisfied: docs.some((d) => req.match.test(d.name)),
+  }));
+  const requirementsDone = requirementsState.filter((r) => r.satisfied).length;
+  const requirementsPct = Math.round((requirementsDone / REQUIRED_DOCUMENTS.length) * 100);
 
   // Upload
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -300,6 +328,44 @@ function PortalPage() {
 
         {/* Documents */}
         <section className="rounded-xl border border-border bg-card overflow-hidden">
+          {/* Required documents checklist */}
+          <div className="p-7 border-b border-border bg-secondary/30">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+                  <ClipboardList className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+                </div>
+                <div>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Required documents</span>
+                  <h2 className="font-serif text-2xl mt-1">Your Medicaid application checklist</h2>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                    Upload the items below so your specialist can build your application. Each box checks itself once a matching file appears in your vault.
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-serif text-primary">{requirementsDone}<span className="text-muted-foreground text-base"> / {REQUIRED_DOCUMENTS.length}</span></div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1">Submitted</div>
+              </div>
+            </div>
+            <div className="mt-5">
+              <Progress value={requirementsPct} aria-label="Required documents progress" />
+            </div>
+            <ul className="mt-6 grid sm:grid-cols-2 gap-x-6 gap-y-3">
+              {requirementsState.map((r) => (
+                <li key={r.label} className="flex items-start gap-3">
+                  {r.satisfied
+                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" aria-label="Submitted" />
+                    : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 shrink-0" aria-label="Not yet submitted" />}
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${r.satisfied ? "text-foreground" : "text-foreground"}`}>{r.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{r.hint}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div className="p-7 border-b border-border flex items-center justify-between flex-wrap gap-4">
             <div>
               <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Documents</span>
