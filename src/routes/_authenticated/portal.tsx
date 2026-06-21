@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions";
+import { analyzeEligibility } from "@/lib/eligibility.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -12,8 +13,9 @@ import { SupportChatbot } from "@/components/support-chatbot";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
-  CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList,
+  CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList, Brain, AlertTriangle, XCircle,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 const MAX_FILES = 200;
 const MAX_FILE_MB = 25;
@@ -175,11 +177,21 @@ function PortalPage() {
 
   const mergeFn = useServerFn(mergeUserDocuments);
   const signedFn = useServerFn(getSignedDownloadUrl);
+  const analyzeFn = useServerFn(analyzeEligibility);
   const merge = useMutation({
     mutationFn: async () => mergeFn(),
     onSuccess: (res) => {
       toast.success(`Packet ready — ${res.count} file${res.count === 1 ? "" : "s"} merged.`);
       window.open(res.url, "_blank");
+      qc.invalidateQueries({ queryKey: ["check_ins"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const analyze = useMutation({
+    mutationFn: async () => analyzeFn(),
+    onSuccess: () => {
+      toast.success("Eligibility analysis ready.");
       qc.invalidateQueries({ queryKey: ["check_ins"] });
     },
     onError: (e: Error) => toast.error(e.message),
