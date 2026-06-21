@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions";
+import { analyzeEligibility } from "@/lib/eligibility.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -12,8 +13,9 @@ import { SupportChatbot } from "@/components/support-chatbot";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
-  CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList,
+  CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList, Brain, AlertTriangle, XCircle,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 const MAX_FILES = 200;
 const MAX_FILE_MB = 25;
@@ -175,11 +177,21 @@ function PortalPage() {
 
   const mergeFn = useServerFn(mergeUserDocuments);
   const signedFn = useServerFn(getSignedDownloadUrl);
+  const analyzeFn = useServerFn(analyzeEligibility);
   const merge = useMutation({
     mutationFn: async () => mergeFn(),
     onSuccess: (res) => {
       toast.success(`Packet ready — ${res.count} file${res.count === 1 ? "" : "s"} merged.`);
       window.open(res.url, "_blank");
+      qc.invalidateQueries({ queryKey: ["check_ins"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const analyze = useMutation({
+    mutationFn: async () => analyzeFn(),
+    onSuccess: () => {
+      toast.success("Eligibility analysis ready.");
       qc.invalidateQueries({ queryKey: ["check_ins"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -243,20 +255,20 @@ function PortalPage() {
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10 space-y-10">
         {/* Hero summary */}
         <section className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-xl p-8 bg-[var(--gradient-emerald)] shadow-[var(--shadow-elegant)]" style={{ color: "#C9A227" }}>
-            <span className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: "#C9A227" }}>Your case</span>
-            <h1 className="font-serif text-3xl mt-2 font-bold" style={{ color: "#C9A227" }}>
+          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)] text-black">
+            <span className="text-xs uppercase tracking-[0.18em] font-semibold text-black">Your case</span>
+            <h1 className="font-serif text-3xl mt-2 font-bold text-black">
               Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="mt-2 max-w-xl" style={{ color: "#C9A227" }}>
-              You've uploaded <span className="font-bold" style={{ color: "#C9A227" }}>{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
+            <p className="mt-2 max-w-xl text-black">
+              You've uploaded <span className="font-bold text-black">{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
             </p>
             <div className="mt-6 max-w-md">
-              <div className="flex items-center justify-between text-xs font-semibold mb-2" style={{ color: "#C9A227" }}>
+              <div className="flex items-center justify-between text-xs font-semibold mb-2 text-black">
                 <span>Onboarding progress</span><span>{progress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-white/15 overflow-hidden">
-                <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-2 rounded-full bg-black/10 overflow-hidden">
+                <div className="h-full bg-[var(--emerald)] transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -324,6 +336,54 @@ function PortalPage() {
               {checkIns.length === 0 && <li className="text-sm text-muted-foreground">No check-ins yet.</li>}
             </ol>
           </div>
+        </section>
+
+        {/* AI Eligibility Analyzer */}
+        <section className="rounded-xl border border-border bg-card p-7">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+                <Brain className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">AI document review</span>
+                <h2 className="font-serif text-2xl mt-1">Check my Medicaid eligibility</h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                  Our AI reads every document you've uploaded and gives you a plain-language eligibility estimate. This is a screening, not a final decision — your specialist confirms the result.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => analyze.mutate()} disabled={analyze.isPending || docs.length === 0}>
+              <Brain className="h-4 w-4 mr-2" />
+              {analyze.isPending ? "Analyzing…" : docs.length === 0 ? "Upload files first" : "Run eligibility check"}
+            </Button>
+          </div>
+
+          {analyze.data && (
+            <div className="mt-6 rounded-lg border border-border bg-secondary/40 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                {analyze.data.verdict === "eligible" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--emerald)]">
+                    <CheckCircle2 className="h-4 w-4" /> Likely Eligible
+                  </span>
+                )}
+                {analyze.data.verdict === "needs_info" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700">
+                    <AlertTriangle className="h-4 w-4" /> More Information Needed
+                  </span>
+                )}
+                {analyze.data.verdict === "ineligible" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
+                    <XCircle className="h-4 w-4" /> Likely Ineligible
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">· {analyze.data.totalDocs} document{analyze.data.totalDocs === 1 ? "" : "s"} reviewed</span>
+              </div>
+              <div className="prose prose-sm max-w-none text-foreground">
+                <ReactMarkdown>{analyze.data.report}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Documents */}
