@@ -163,6 +163,10 @@ function PortalPage() {
     if (success > 0) toast.success(`Uploaded ${success} file${success === 1 ? "" : "s"}.`);
     qc.invalidateQueries({ queryKey: ["documents"] });
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (success > 0) {
+      toast.info("Running AI eligibility check…");
+      analyze.mutate();
+    }
   }
 
   const deleteDoc = useMutation({
