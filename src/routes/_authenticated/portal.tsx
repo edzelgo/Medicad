@@ -243,20 +243,20 @@ function PortalPage() {
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10 space-y-10">
         {/* Hero summary */}
         <section className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-xl p-8 bg-[var(--gradient-emerald)] shadow-[var(--shadow-elegant)]" style={{ color: "#C9A227" }}>
-            <span className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: "#C9A227" }}>Your case</span>
-            <h1 className="font-serif text-3xl mt-2 font-bold" style={{ color: "#C9A227" }}>
+          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)] text-black">
+            <span className="text-xs uppercase tracking-[0.18em] font-semibold text-black">Your case</span>
+            <h1 className="font-serif text-3xl mt-2 font-bold text-black">
               Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="mt-2 max-w-xl" style={{ color: "#C9A227" }}>
-              You've uploaded <span className="font-bold" style={{ color: "#C9A227" }}>{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
+            <p className="mt-2 max-w-xl text-black">
+              You've uploaded <span className="font-bold text-black">{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
             </p>
             <div className="mt-6 max-w-md">
-              <div className="flex items-center justify-between text-xs font-semibold mb-2" style={{ color: "#C9A227" }}>
+              <div className="flex items-center justify-between text-xs font-semibold mb-2 text-black">
                 <span>Onboarding progress</span><span>{progress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-white/15 overflow-hidden">
-                <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-2 rounded-full bg-black/10 overflow-hidden">
+                <div className="h-full bg-[var(--emerald)] transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
