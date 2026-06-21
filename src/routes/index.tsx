@@ -112,7 +112,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <header className="border-b border-border/60 backdrop-blur-sm bg-background/80 sticky top-0 z-30">
+      <header className="border-b border-border bg-background sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center">
