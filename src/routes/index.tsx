@@ -150,14 +150,14 @@ function Index() {
         />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-primary-foreground font-semibold">
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-semibold" style={{ color: "#C9A227" }}>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Long-term care Medicaid planning
             </span>
-            <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight">
-              Medicaid <span className="text-accent font-bold">Success</span>
+            <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight" style={{ color: "#C9A227" }}>
+              Medicaid <span className="font-bold" style={{ color: "#C9A227" }}>Success</span>
             </h1>
-            <p className="mt-6 text-lg lg:text-xl text-primary-foreground max-w-xl leading-relaxed">
+            <p className="mt-6 text-lg lg:text-xl max-w-xl leading-relaxed" style={{ color: "#C9A227" }}>
               No matter your long-term care Medicaid planning need, we have a solution for you — for nursing homes, PACE organizations, home care providers, and individuals.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
