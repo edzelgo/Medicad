@@ -163,6 +163,10 @@ function PortalPage() {
     if (success > 0) toast.success(`Uploaded ${success} file${success === 1 ? "" : "s"}.`);
     qc.invalidateQueries({ queryKey: ["documents"] });
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (success > 0) {
+      toast.info("Running AI eligibility check…");
+      analyze.mutate();
+    }
   }
 
   const deleteDoc = useMutation({
@@ -255,20 +259,20 @@ function PortalPage() {
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10 space-y-10">
         {/* Hero summary */}
         <section className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)] text-black">
-            <span className="text-xs uppercase tracking-[0.18em] font-semibold text-black">Your case</span>
-            <h1 className="font-serif text-3xl mt-2 font-bold text-black">
+          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)]" style={{ color: "#5C3A1E" }}>
+            <span className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: "#5C3A1E" }}>Your case</span>
+            <h1 className="font-serif text-3xl mt-2 font-bold" style={{ color: "#5C3A1E" }}>
               Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="mt-2 max-w-xl text-black">
-              You've uploaded <span className="font-bold text-black">{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
+            <p className="mt-2 max-w-xl" style={{ color: "#5C3A1E" }}>
+              You've uploaded <span className="font-bold" style={{ color: "#5C3A1E" }}>{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
             </p>
             <div className="mt-6 max-w-md">
-              <div className="flex items-center justify-between text-xs font-semibold mb-2 text-black">
+              <div className="flex items-center justify-between text-xs font-semibold mb-2" style={{ color: "#5C3A1E" }}>
                 <span>Onboarding progress</span><span>{progress}%</span>
               </div>
               <div className="h-2 rounded-full bg-black/10 overflow-hidden">
-                <div className="h-full bg-[var(--emerald)] transition-all" style={{ width: `${progress}%` }} />
+                <div className="h-full transition-all" style={{ width: `${progress}%`, backgroundColor: "#5C3A1E" }} />
               </div>
             </div>
           </div>
