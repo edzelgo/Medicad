@@ -338,6 +338,54 @@ function PortalPage() {
           </div>
         </section>
 
+        {/* AI Eligibility Analyzer */}
+        <section className="rounded-xl border border-border bg-card p-7">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+                <Brain className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">AI document review</span>
+                <h2 className="font-serif text-2xl mt-1">Check my Medicaid eligibility</h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                  Our AI reads every document you've uploaded and gives you a plain-language eligibility estimate. This is a screening, not a final decision — your specialist confirms the result.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => analyze.mutate()} disabled={analyze.isPending || docs.length === 0}>
+              <Brain className="h-4 w-4 mr-2" />
+              {analyze.isPending ? "Analyzing…" : docs.length === 0 ? "Upload files first" : "Run eligibility check"}
+            </Button>
+          </div>
+
+          {analyze.data && (
+            <div className="mt-6 rounded-lg border border-border bg-secondary/40 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                {analyze.data.verdict === "eligible" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--emerald)]">
+                    <CheckCircle2 className="h-4 w-4" /> Likely Eligible
+                  </span>
+                )}
+                {analyze.data.verdict === "needs_info" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700">
+                    <AlertTriangle className="h-4 w-4" /> More Information Needed
+                  </span>
+                )}
+                {analyze.data.verdict === "ineligible" && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive">
+                    <XCircle className="h-4 w-4" /> Likely Ineligible
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">· {analyze.data.totalDocs} document{analyze.data.totalDocs === 1 ? "" : "s"} reviewed</span>
+              </div>
+              <div className="prose prose-sm max-w-none text-foreground">
+                <ReactMarkdown>{analyze.data.report}</ReactMarkdown>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Documents */}
         <section className="rounded-xl border border-border bg-card overflow-hidden">
           {/* Required documents checklist */}
