@@ -115,7 +115,7 @@ function Index() {
       <header className="border-b border-border bg-background sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-md bg-gradient-primary flex items-center justify-center">
               <FileCheck className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-serif text-lg tracking-tight leading-tight text-foreground">
@@ -139,7 +139,7 @@ function Index() {
       </header>
 
       {/* Hero band */}
-      <section className="relative bg-[var(--gradient-emerald)] text-primary-foreground overflow-hidden">
+      <section className="relative bg-gradient-primary text-primary-foreground overflow-hidden">
         <div
           className="absolute inset-0 opacity-20 mix-blend-overlay"
           aria-hidden
@@ -255,7 +255,7 @@ function Index() {
               const Icon = w.icon;
               return (
                 <div key={w.title} className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
-                  <div className="h-11 w-11 rounded-lg bg-[var(--gradient-emerald)] flex items-center justify-center">
+                  <div className="h-11 w-11 rounded-lg bg-gradient-primary flex items-center justify-center">
                     <Icon className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <h3 className="mt-5 font-serif text-xl text-foreground">{w.title}</h3>
@@ -280,7 +280,7 @@ function Index() {
               className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
-          <div className="bg-[var(--gradient-emerald)] text-primary-foreground p-10 lg:p-16 flex items-center">
+          <div className="bg-gradient-primary text-primary-foreground p-10 lg:p-16 flex items-center">
             <div>
               <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">Dignity, comfort, community</span>
               <h2 className="mt-3 font-serif text-3xl lg:text-4xl leading-tight">
