@@ -259,7 +259,7 @@ function Index() {
                     <Icon className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <h3 className="mt-5 font-serif text-xl text-foreground">{w.title}</h3>
-                  <p className="mt-2 text-sm text-foreground/90 leading-relaxed">{w.body}</p>
+                  <p className="mt-2 text-sm text-foreground leading-relaxed">{w.body}</p>
                 </div>
               );
             })}
