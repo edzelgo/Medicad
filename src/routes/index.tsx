@@ -219,7 +219,7 @@ function Index() {
                     loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-emerald-deep/25" aria-hidden />
+                  <div className="absolute inset-0 bg-primary/25" aria-hidden />
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold uppercase tracking-wider">
                     <Icon className="h-3 w-3" strokeWidth={2.5} />
                     {s.brand.replace("™", "")}
