@@ -639,3 +639,27 @@ function Field({ label, type, name }: { label: string; type: string; name: strin
     </div>
   );
 }
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 hover:bg-secondary/40 transition"
+      >
+        <span className="font-serif text-lg text-foreground">{q}</span>
+        {open ? (
+          <Minus className="h-5 w-5 text-primary shrink-0" aria-hidden />
+        ) : (
+          <Plus className="h-5 w-5 text-primary shrink-0" aria-hidden />
+        )}
+      </button>
+      {open && (
+        <div className="px-5 pb-5 text-foreground leading-relaxed">{a}</div>
+      )}
+    </div>
+  );
+}
