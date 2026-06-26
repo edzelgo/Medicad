@@ -46,7 +46,7 @@ function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       {/* Left visual */}
-      <aside className="hidden lg:flex relative flex-col justify-between p-12 bg-[var(--gradient-emerald)] text-primary-foreground">
+      <aside className="hidden lg:flex relative flex-col justify-between p-12 bg-gradient-primary text-primary-foreground">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary-foreground hover:text-primary-foreground/90">
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>

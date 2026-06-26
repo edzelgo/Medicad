@@ -235,7 +235,7 @@ function PortalPage() {
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-[var(--gradient-emerald)]" />
+            <div className="h-8 w-8 rounded-md bg-gradient-primary" />
             <div>
               <div className="font-serif text-base leading-tight">Medicaid Success</div>
               <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -346,7 +346,7 @@ function PortalPage() {
         <section className="rounded-xl border border-border bg-card p-7">
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+              <div className="h-10 w-10 rounded-md bg-gradient-primary flex items-center justify-center shrink-0">
                 <Brain className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
               <div>
@@ -396,7 +396,7 @@ function PortalPage() {
           <div className="p-7 border-b border-border bg-secondary/30">
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-md bg-[var(--gradient-emerald)] flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-md bg-gradient-primary flex items-center justify-center shrink-0">
                   <ClipboardList className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
                 </div>
                 <div>
