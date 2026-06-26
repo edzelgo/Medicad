@@ -308,7 +308,7 @@ function PortalPage() {
                       className="w-full text-left flex items-start gap-3 py-4 group"
                     >
                       {done
-                        ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" />
+                        ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-accent shrink-0" />
                         : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 group-hover:text-foreground shrink-0" />}
                       <div className="flex-1">
                         <div className={`font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
