@@ -580,40 +580,7 @@ function Index() {
             </p>
           </div>
 
-          <form
-            className="rounded-xl border border-border bg-card p-7 shadow-[var(--shadow-card)] space-y-4"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="First Name" type="text" name="firstName" />
-              <Field label="Last Name" type="text" name="lastName" />
-              <Field label="Email" type="email" name="email" />
-              <Field label="Phone" type="tel" name="phone" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-foreground uppercase tracking-wider">Type of Inquiry</label>
-              <select className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                <option>Nursing Home Resident</option>
-                <option>Nursing Home Facility</option>
-                <option>PACE Organization</option>
-                <option>Home Care Provider</option>
-                <option>Individual / Family</option>
-              </select>
-            </div>
-            <label className="flex items-start gap-2 text-xs text-foreground leading-relaxed">
-              <input type="checkbox" className="mt-0.5" />
-              <span>I agree to receive SMS text messages from Medicaid Success regarding my inquiry. Message frequency may vary. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not a condition of submission.</span>
-            </label>
-            <button
-              type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-95 transition"
-            >
-              Submit <ArrowRight className="h-4 w-4" />
-            </button>
-            <p className="text-xs text-foreground">
-              <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
-            </p>
-          </form>
+          <ContactForm />
         </div>
       </section>
 
