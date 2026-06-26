@@ -419,7 +419,7 @@ function PortalPage() {
               {requirementsState.map((r) => (
                 <li key={r.label} className="flex items-start gap-3">
                   {r.satisfied
-                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" aria-label="Submitted" />
+                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-accent shrink-0" aria-label="Submitted" />
                     : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 shrink-0" aria-label="Not yet submitted" />}
                   <div className="flex-1">
                     <div className={`font-medium text-sm ${r.satisfied ? "text-foreground" : "text-foreground"}`}>{r.label}</div>
@@ -467,7 +467,7 @@ function PortalPage() {
               {docs.map((d) => (
                 <li key={d.id} className="flex items-center gap-4 p-4 px-7 hover:bg-secondary/40 transition">
                   <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-[var(--emerald)]" />
+                    <FileText className="h-4 w-4 text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{d.name}</div>
@@ -504,7 +504,7 @@ function DropZone({ onFiles, disabled }: { onFiles: (f: FileList) => void; disab
       }`}
     >
       <div className="h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center mb-4">
-        <Upload className="h-5 w-5 text-[var(--emerald)]" />
+        <Upload className="h-5 w-5 text-accent" />
       </div>
       <div className="font-serif text-xl">Drop your documents here</div>
       <p className="text-sm text-muted-foreground mt-1 max-w-md">PDFs, images, and scans. We'll keep them safe and compile them into a single packet when you're ready.</p>
