@@ -15,7 +15,16 @@ import {
   Clock,
   DollarSign,
   Users as UsersIcon,
+  TrendingUp,
+  TrendingDown,
+  HelpCircle,
+  HomeIcon,
+  Building,
+  Stethoscope,
+  Plus,
+  Minus,
 } from "lucide-react";
+import { useState } from "react";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
 import imgPace from "@/assets/service-pace.jpg";
@@ -99,11 +108,76 @@ const testimonials = [
   },
 ];
 
+const featuredTestimonial = {
+  quote:
+    "My husband's battle with Alzheimer's took a sudden turn for the worse. I needed assistance with the Medicaid application process and help preserving our assets. Thanks to their expertise and perseverance working directly with the state caseworker, my husband was approved for Medicaid and our assets were successfully addressed for financial security. I would highly recommend their services to anyone faced with this difficult situation.",
+  name: "Pat W.",
+  role: "Spouse, Medicaid Success Select client",
+};
+
+const ltcCosts = [
+  { icon: HomeIcon, label: "Home Health Aide", price: "$5,148", suffix: "a month" },
+  { icon: Building, label: "Assisted Living", price: "$4,500", suffix: "a month" },
+  { icon: Stethoscope, label: "Skilled Nursing", price: "$9,043", suffix: "a month" },
+];
+
+const painPoints = [
+  "Think they have to be poor or spend their life savings to be eligible for LTC Medicaid",
+  "Think LTC Medicaid will only pay for a nursing home",
+  "Feel that if they don't meet the LTC Medicaid eligibility limits they can't qualify",
+  "Have heard the state will take their home",
+  "Believe it's too late to save money if their loved one is already getting care",
+  "Are exhausted and short on time caring for a loved one",
+];
+
+const advantageBullets = [
+  "On-site Medicaid eligibility assistance",
+  "Get Medicaid applications approved faster",
+  "Save staff time and expenses with our low-cost solution",
+  "Get more participants approved for Medicaid benefits",
+  "Two decades of nationwide Medicaid expertise on your side",
+  "Every specialist is a Certified Medicaid Planner™",
+  "We handle periodic recertifications so you never have to worry",
+];
+
+const faqs = [
+  {
+    q: "Do I have to be poor to qualify for long-term care Medicaid?",
+    a: "No. Eligibility involves more than just income. With proper planning, many people preserve significant assets — including the family home — while still qualifying for LTC Medicaid.",
+  },
+  {
+    q: "Will Medicaid take my house?",
+    a: "In most cases, no. The family home is typically protected during the lifetime of the Medicaid recipient, and there are strategies available to protect it from estate recovery as well.",
+  },
+  {
+    q: "Does Medicaid only pay for nursing homes?",
+    a: "No. Long-term care Medicaid can cover care at home through home care agencies, through PACE programs, in assisted living (in many states), and in skilled nursing facilities.",
+  },
+  {
+    q: "Is it too late to plan if my loved one is already receiving care?",
+    a: "Almost never. There are crisis planning strategies that can still preserve assets and accelerate Medicaid eligibility even after care has begun.",
+  },
+  {
+    q: "How is Medicaid Success different from a regular elder-law attorney?",
+    a: "Our specialists do nothing but long-term care Medicaid all day, every day. Every case is handled by a Certified Medicaid Planner™ who manages it from intake through approval — and recertification.",
+  },
+  {
+    q: "Is Medicaid Success a government agency or a free service?",
+    a: "No. Medicaid Success is not a government agency, nor is it a free service. We are a private long-term care Medicaid planning firm.",
+  },
+  {
+    q: "How do I get started?",
+    a: "Call us at 888-615-6144, email info@medicaidsuccess.com, or fill out the contact form below. A specialist will reach out to discuss your situation.",
+  },
+];
+
 const navItems = [
   { label: "Nursing Homes", href: "#services" },
   { label: "PACE Organizations", href: "#services" },
   { label: "Home Care", href: "#services" },
   { label: "Individuals", href: "#services" },
+  { label: "Why Us", href: "#advantage" },
+  { label: "FAQ", href: "#faq" },
   { label: "Request a Demo", href: "#contact" },
   { label: "Contact", href: "#contact" },
 ];
@@ -267,6 +341,120 @@ function Index() {
         </div>
       </section>
 
+      {/* Stop the confusion / pain points */}
+      <section className="bg-background">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Stop the confusion</span>
+            <h2 className="mt-3 font-serif text-4xl text-primary">You shouldn't have to do this on your own</h2>
+            <p className="mt-4 text-foreground text-lg leading-relaxed">
+              Figuring out how to save money and apply for long-term care Medicaid is overwhelming — and the stakes for your loved one's physical, emotional, and financial future are too high to make a mistake. Most families we meet…
+            </p>
+          </div>
+          <ul className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {painPoints.map((p) => (
+              <li
+                key={p}
+                className="flex gap-3 rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]"
+              >
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" aria-hidden />
+                <span className="text-foreground leading-snug">{p}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* LTC cost cards */}
+      <section className="bg-secondary/50 border-y border-border">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Long-term care is expensive</span>
+            <h2 className="mt-3 font-serif text-4xl text-primary">And Medicare doesn't cover it</h2>
+            <p className="mt-4 text-foreground">
+              National average monthly costs according to the Genworth Cost of Care Survey.
+            </p>
+          </div>
+          <div className="mt-12 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {ltcCosts.map((c) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.label} className="rounded-2xl border border-border bg-card p-8 text-center shadow-[var(--shadow-card)]">
+                  <div className="mx-auto h-14 w-14 rounded-full bg-gradient-primary flex items-center justify-center">
+                    <Icon className="h-7 w-7 text-primary-foreground" />
+                  </div>
+                  <h3 className="mt-5 font-serif text-xl text-foreground">{c.label}</h3>
+                  <p className="mt-3 font-serif text-4xl text-primary font-bold">{c.price}</p>
+                  <p className="mt-1 text-sm text-foreground">{c.suffix}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* The Medicaid Success Advantage — detailed bullets + boost/cut */}
+      <section id="advantage" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+        <div className="text-center max-w-2xl mx-auto">
+          <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">What you get</span>
+          <h2 className="mt-3 font-serif text-4xl text-primary">The Medicaid Success Advantage</h2>
+          <p className="mt-4 text-foreground">
+            On-site Medicaid eligibility assistance — built to boost revenue and cut expenses for your facility or family.
+          </p>
+        </div>
+        <ul className="mt-12 grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+          {advantageBullets.map((b) => (
+            <li key={b} className="flex gap-3 rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+              <CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" aria-hidden />
+              <span className="text-foreground">{b}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-16 grid md:grid-cols-2 gap-8">
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h3 className="font-serif text-2xl text-primary">Boost Revenue</h3>
+            </div>
+            <ul className="mt-5 space-y-3 text-foreground">
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> Outsource your applications to certified specialists</li>
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> Get applications approved faster</li>
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> Solve eligibility barriers before they cost you money</li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h3 className="font-serif text-2xl text-primary">Cut Expenses</h3>
+            </div>
+            <ul className="mt-5 space-y-3 text-foreground">
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> Less work, faster turnaround, more value</li>
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> Cut staff expenses</li>
+              <li className="flex gap-2"><CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-0.5" /> A dedicated Medicaid Eligibility Specialist for every case</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured testimonial */}
+      <section className="bg-gradient-primary text-primary-foreground">
+        <div className="max-w-4xl mx-auto px-6 lg:px-10 py-20 text-center">
+          <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">A family story</span>
+          <blockquote className="mt-6 font-serif text-2xl lg:text-3xl leading-relaxed text-primary-foreground">
+            &ldquo;{featuredTestimonial.quote}&rdquo;
+          </blockquote>
+          <figcaption className="mt-6 text-sm">
+            <span className="font-semibold">{featuredTestimonial.name}</span>
+            <span className="opacity-90"> — {featuredTestimonial.role}</span>
+          </figcaption>
+        </div>
+      </section>
+
       {/* Community band */}
       <section className="relative overflow-hidden">
         <div className="grid lg:grid-cols-2">
@@ -336,6 +524,26 @@ function Index() {
             loading="lazy"
             className="w-full h-72 lg:h-96 object-cover"
           />
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="max-w-4xl mx-auto px-6 lg:px-10 py-20 lg:py-24">
+        <div className="text-center">
+          <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Common questions</span>
+          <h2 className="mt-3 font-serif text-4xl text-primary">Frequently asked questions</h2>
+          <p className="mt-4 text-foreground">
+            Quick answers to the questions families and facilities ask us most often.
+          </p>
+        </div>
+        <div className="mt-12 space-y-3">
+          {faqs.map((f, i) => (
+            <FaqItem key={i} q={f.q} a={f.a} />
+          ))}
+        </div>
+        <div className="mt-10 text-center text-foreground">
+          Still have questions? Call us at{" "}
+          <a href="tel:+18886156144" className="text-primary font-semibold underline underline-offset-4">888-615-6144</a>.
         </div>
       </section>
 
@@ -428,6 +636,30 @@ function Field({ label, type, name }: { label: string; type: string; name: strin
         type={type}
         className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
+    </div>
+  );
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 hover:bg-secondary/40 transition"
+      >
+        <span className="font-serif text-lg text-foreground">{q}</span>
+        {open ? (
+          <Minus className="h-5 w-5 text-primary shrink-0" aria-hidden />
+        ) : (
+          <Plus className="h-5 w-5 text-primary shrink-0" aria-hidden />
+        )}
+      </button>
+      {open && (
+        <div className="px-5 pb-5 text-foreground leading-relaxed">{a}</div>
+      )}
     </div>
   );
 }
