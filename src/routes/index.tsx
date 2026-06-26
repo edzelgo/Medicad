@@ -145,19 +145,19 @@ function Index() {
           aria-hidden
           style={{
             backgroundImage:
-              "radial-gradient(circle at 20% 30%, oklch(0.95 0.05 95) 0%, transparent 40%), radial-gradient(circle at 80% 70%, oklch(0.78 0.13 86) 0%, transparent 45%)",
+              "radial-gradient(circle at 20% 30%, oklch(0.94 0.02 250) 0%, transparent 40%), radial-gradient(circle at 80% 70%, oklch(0.52 0.15 276) 0%, transparent 45%)",
           }}
         />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28 grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-semibold" style={{ color: "#C9A227" }}>
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-semibold text-primary-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Long-term care Medicaid planning
             </span>
-            <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight" style={{ color: "#C9A227" }}>
-              Medicaid <span className="font-bold" style={{ color: "#C9A227" }}>Success</span>
+            <h1 className="mt-5 font-serif text-5xl lg:text-7xl leading-[1.02] tracking-tight text-primary-foreground">
+              Medicaid <span className="font-bold text-primary-foreground">Success</span>
             </h1>
-            <p className="mt-6 text-lg lg:text-xl max-w-xl leading-relaxed" style={{ color: "#C9A227" }}>
+            <p className="mt-6 text-lg lg:text-xl max-w-xl leading-relaxed text-primary-foreground">
               No matter your long-term care Medicaid planning need, we have a solution for you — for nursing homes, PACE organizations, home care providers, and individuals.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -184,7 +184,7 @@ function Index() {
                 height={1024}
                 className="w-full h-full object-cover aspect-square"
               />
-              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-deep/90 via-emerald-deep/60 to-transparent p-6">
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary/90 via-primary/60 to-transparent p-6">
                 <p className="font-serif text-xl leading-snug text-primary-foreground">
                   &ldquo;A highly effective, low-cost way to manage long-term care Medicaid.&rdquo;
                 </p>
