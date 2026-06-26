@@ -71,6 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          inquiry_type: string | null
+          last_name: string
+          message: string | null
+          phone: string | null
+          sms_consent: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          inquiry_type?: string | null
+          last_name: string
+          message?: string | null
+          phone?: string | null
+          sms_consent?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          inquiry_type?: string | null
+          last_name?: string
+          message?: string | null
+          phone?: string | null
+          sms_consent?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
