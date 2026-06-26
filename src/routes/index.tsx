@@ -610,6 +610,125 @@ function Field({ label, type, name }: { label: string; type: string; name: strin
   );
 }
 
+function ContactForm() {
+  const submit = useServerFn(submitLead);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    inquiryType: "Nursing Home Resident",
+    smsConsent: false,
+    message: "",
+  });
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const target = e.target as HTMLInputElement;
+    const value = target.type === "checkbox" ? target.checked : target.value;
+    setForm((f) => ({ ...f, [k]: value }));
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.firstName || !form.lastName || !form.email) {
+      toast.error("Please fill out your name and email.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submit({ data: form });
+      setSuccess(true);
+      toast.success("Thanks! A specialist will be in touch shortly.");
+      setForm({ firstName: "", lastName: "", email: "", phone: "", inquiryType: "Nursing Home Resident", smsConsent: false, message: "" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 shadow-[var(--shadow-card)] text-center space-y-4">
+        <CheckCircle2 className="h-12 w-12 text-primary mx-auto" aria-hidden />
+        <h3 className="font-serif text-2xl text-primary">Thank you!</h3>
+        <p className="text-foreground">
+          Your inquiry has been received. A long-term care Medicaid specialist will reach out shortly.
+        </p>
+        <button
+          type="button"
+          onClick={() => setSuccess(false)}
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-md border border-border text-foreground hover:bg-secondary/40 transition"
+        >
+          Submit another inquiry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="rounded-xl border border-border bg-card p-7 shadow-[var(--shadow-card)] space-y-4"
+      onSubmit={onSubmit}
+    >
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="firstName" className="text-xs font-semibold text-foreground uppercase tracking-wider">First Name</label>
+          <input id="firstName" name="firstName" type="text" required value={form.firstName} onChange={set("firstName")}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="text-xs font-semibold text-foreground uppercase tracking-wider">Last Name</label>
+          <input id="lastName" name="lastName" type="text" required value={form.lastName} onChange={set("lastName")}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div>
+          <label htmlFor="email" className="text-xs font-semibold text-foreground uppercase tracking-wider">Email</label>
+          <input id="email" name="email" type="email" required value={form.email} onChange={set("email")}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div>
+          <label htmlFor="phone" className="text-xs font-semibold text-foreground uppercase tracking-wider">Phone</label>
+          <input id="phone" name="phone" type="tel" value={form.phone} onChange={set("phone")}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+      </div>
+      <div>
+        <label htmlFor="inquiryType" className="text-xs font-semibold text-foreground uppercase tracking-wider">Type of Inquiry</label>
+        <select id="inquiryType" name="inquiryType" value={form.inquiryType} onChange={set("inquiryType")}
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+          <option>Nursing Home Resident</option>
+          <option>Nursing Home Facility</option>
+          <option>PACE Organization</option>
+          <option>Home Care Provider</option>
+          <option>Individual / Family</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="message" className="text-xs font-semibold text-foreground uppercase tracking-wider">How can we help?</label>
+        <textarea id="message" name="message" rows={4} value={form.message} onChange={set("message")}
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+      </div>
+      <label className="flex items-start gap-2 text-xs text-foreground leading-relaxed">
+        <input type="checkbox" className="mt-0.5" checked={form.smsConsent} onChange={set("smsConsent")} />
+        <span>I agree to receive SMS text messages from Medicaid Success regarding my inquiry. Message frequency may vary. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not a condition of submission.</span>
+      </label>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-95 transition disabled:opacity-60"
+      >
+        {submitting ? "Submitting..." : (<>Submit <ArrowRight className="h-4 w-4" /></>)}
+      </button>
+      <p className="text-xs text-foreground">
+        <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
+      </p>
+    </form>
+  );
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
