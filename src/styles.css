@@ -150,6 +150,10 @@
   --sidebar-ring: oklch(0.55 0.12 250);
 }
 
+@utility bg-gradient-primary {
+  background-image: var(--gradient-emerald);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
