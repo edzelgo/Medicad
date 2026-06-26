@@ -47,7 +47,7 @@ function AuthPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       {/* Left visual */}
       <aside className="hidden lg:flex relative flex-col justify-between p-12 bg-[var(--gradient-emerald)] text-primary-foreground">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm opacity-80 hover:opacity-100">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary-foreground hover:text-primary-foreground/90">
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
         <div>
@@ -59,9 +59,9 @@ function AuthPage() {
             <br />
             <span className="text-accent italic">Securely.</span>
           </h1>
-          <p className="mt-6 text-base opacity-80 max-w-md">{roleMeta[role].blurb} Sign in to your private workspace — upload documents, track status, and see what your specialist is working on.</p>
+          <p className="mt-6 text-base text-primary-foreground/90 max-w-md">{roleMeta[role].blurb} Sign in to your private workspace — upload documents, track status, and see what your specialist is working on.</p>
         </div>
-        <p className="text-xs opacity-60 font-serif italic">Medicaid Success · Onboarding made dignified.</p>
+        <p className="text-xs text-primary-foreground/70 font-serif italic">Medicaid Success · Onboarding made dignified.</p>
       </aside>
 
       {/* Right form */}

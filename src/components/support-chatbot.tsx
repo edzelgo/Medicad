@@ -11,20 +11,20 @@ const ROLE_CONFIG: Record<Role, { label: string; greeting: string; color: string
   client: {
     label: "Client Support",
     greeting: "Hi! I'm here to help you with your Medicaid application. I can answer questions about documents, eligibility, and what to expect at each step. What can I help you with?",
-    color: "#1a6b4a",
-    accent: "#e8f5ee",
+    color: "#1e3a5f",
+    accent: "#e8f0fa",
   },
   agent: {
     label: "Agent Support",
     greeting: "Welcome back! I can help with producer onboarding, licensing requirements, E&O docs, and tracking your referral pipeline. What do you need?",
-    color: "#1a3f6b",
-    accent: "#e8f0fa",
+    color: "#0f1b3d",
+    accent: "#d6e0eb",
   },
   referral: {
     label: "Partner Support",
     greeting: "Hello! I'm here to support your referral partnership — patient packet submissions, partner agreements, and case status updates. How can I help?",
-    color: "#4a1a6b",
-    accent: "#f3e8fa",
+    color: "#3b6fa0",
+    accent: "#e8f0fa",
   },
 };
 

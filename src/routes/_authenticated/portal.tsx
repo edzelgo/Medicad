@@ -259,20 +259,20 @@ function PortalPage() {
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10 space-y-10">
         {/* Hero summary */}
         <section className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)]" style={{ color: "#5C3A1E" }}>
-            <span className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: "#5C3A1E" }}>Your case</span>
-            <h1 className="font-serif text-3xl mt-2 font-bold" style={{ color: "#5C3A1E" }}>
+          <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)]">
+            <span className="text-xs uppercase tracking-[0.18em] font-semibold text-primary">Your case</span>
+            <h1 className="font-serif text-3xl mt-2 font-bold text-foreground">
               Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="mt-2 max-w-xl" style={{ color: "#5C3A1E" }}>
-              You've uploaded <span className="font-bold" style={{ color: "#5C3A1E" }}>{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
+            <p className="mt-2 max-w-xl text-foreground">
+              You've uploaded <span className="font-bold text-primary">{docs.length}</span> of {MAX_FILES} files. Your specialist will review every document and post a check-in as your case progresses.
             </p>
             <div className="mt-6 max-w-md">
-              <div className="flex items-center justify-between text-xs font-semibold mb-2" style={{ color: "#5C3A1E" }}>
+              <div className="flex items-center justify-between text-xs font-semibold mb-2 text-foreground">
                 <span>Onboarding progress</span><span>{progress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-black/10 overflow-hidden">
-                <div className="h-full transition-all" style={{ width: `${progress}%`, backgroundColor: "#5C3A1E" }} />
+              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                <div className="h-full transition-all bg-primary" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -308,7 +308,7 @@ function PortalPage() {
                       className="w-full text-left flex items-start gap-3 py-4 group"
                     >
                       {done
-                        ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" />
+                        ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-accent shrink-0" />
                         : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 group-hover:text-foreground shrink-0" />}
                       <div className="flex-1">
                         <div className={`font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
@@ -419,7 +419,7 @@ function PortalPage() {
               {requirementsState.map((r) => (
                 <li key={r.label} className="flex items-start gap-3">
                   {r.satisfied
-                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-[var(--emerald)] shrink-0" aria-label="Submitted" />
+                    ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-accent shrink-0" aria-label="Submitted" />
                     : <Circle className="h-5 w-5 mt-0.5 text-muted-foreground/50 shrink-0" aria-label="Not yet submitted" />}
                   <div className="flex-1">
                     <div className={`font-medium text-sm ${r.satisfied ? "text-foreground" : "text-foreground"}`}>{r.label}</div>
@@ -467,7 +467,7 @@ function PortalPage() {
               {docs.map((d) => (
                 <li key={d.id} className="flex items-center gap-4 p-4 px-7 hover:bg-secondary/40 transition">
                   <div className="h-10 w-10 rounded-md bg-secondary flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-[var(--emerald)]" />
+                    <FileText className="h-4 w-4 text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{d.name}</div>
@@ -504,7 +504,7 @@ function DropZone({ onFiles, disabled }: { onFiles: (f: FileList) => void; disab
       }`}
     >
       <div className="h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center mb-4">
-        <Upload className="h-5 w-5 text-[var(--emerald)]" />
+        <Upload className="h-5 w-5 text-accent" />
       </div>
       <div className="font-serif text-xl">Drop your documents here</div>
       <p className="text-sm text-muted-foreground mt-1 max-w-md">PDFs, images, and scans. We'll keep them safe and compile them into a single packet when you're ready.</p>
