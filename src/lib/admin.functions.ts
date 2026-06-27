@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { computeRequirementProgress } from "@/lib/medicaid-requirements";
 
 async function assertStaff(context: { supabase: any; userId: string }) {
   const { data: roles } = await context.supabase
@@ -56,17 +57,33 @@ export const adminListUsers = createServerFn({ method: "GET" })
     }
 
     const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+    // Pull all document filenames so admins can see per-user checklist progress.
+    const { data: allDocs } = await supabaseAdmin
+      .from("documents")
+      .select("user_id, name");
+    const docsByUser = new Map<string, string[]>();
+    for (const d of allDocs ?? []) {
+      const arr = docsByUser.get(d.user_id) ?? [];
+      arr.push(d.name);
+      docsByUser.set(d.user_id, arr);
+    }
+
     return (profiles ?? []).map((p) => {
       const auth = authByUser.get(p.id);
       const isBanned = !!(auth?.banned_until && new Date(auth.banned_until) > new Date());
       const recentlyActive = auth?.last_sign_in_at && Date.now() - new Date(auth.last_sign_in_at).getTime() < THIRTY_DAYS;
       const status = isBanned ? "inactive" : recentlyActive ? "active" : "inactive";
+      const filenames = docsByUser.get(p.id) ?? [];
+      const progress = computeRequirementProgress(filenames);
       return {
         ...p,
         email: auth?.email ?? null,
         last_sign_in_at: auth?.last_sign_in_at ?? null,
         status,
         roles: rolesByUser.get(p.id) ?? [],
+        document_count: filenames.length,
+        progress,
       };
     });
   });
