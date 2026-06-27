@@ -102,9 +102,23 @@ export const updateLead = createServerFn({ method: "POST" })
     const patch = cleanLead(data.patch as never);
     if (data.patch.stage) patch.stage = data.patch.stage;
     if (data.patch.assigned_to !== undefined) patch.assigned_to = data.patch.assigned_to;
+    let prevStage: string | undefined;
+    if (data.patch.stage) {
+      const { data: prev } = await context.supabase
+        .from("leads").select("stage").eq("id", data.id).maybeSingle();
+      prevStage = prev?.stage;
+    }
     const { error } = await context.supabase
       .from("leads").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (data.patch.stage && prevStage !== data.patch.stage) {
+      await context.supabase.from("activities").insert({
+        lead_id: data.id,
+        type: "stage_change",
+        content: `Stage changed${prevStage ? ` from ${prevStage}` : ""} to ${data.patch.stage}.`,
+        created_by: context.userId,
+      });
+    }
     return { ok: true };
   });
 
