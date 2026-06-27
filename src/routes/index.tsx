@@ -207,14 +207,14 @@ function Index() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <a
-              href="/crm"
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
-              target="_blank"
-              rel="noopener"
-            >
-              Staff CRM
-            </a>
+            {isStaff && (
+              <Link
+                to="/admin/users"
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
+              >
+                Admin
+              </Link>
+            )}
             <Link
               to="/auth"
               search={{ role: "client" as const }}
