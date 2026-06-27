@@ -1,6 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeRequirementProgress } from "@/lib/medicaid-requirements";
+import { z } from "zod";
+
+export const APPLICATION_STAGES = [
+  "new_lead",
+  "documents_pending",
+  "under_review",
+  "submitted_to_medicaid",
+  "approved",
+  "denied",
+] as const;
+export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
+export const APPLICATION_STAGE_LABEL: Record<ApplicationStage, string> = {
+  new_lead: "New Lead",
+  documents_pending: "Documents Pending",
+  under_review: "Under Review",
+  submitted_to_medicaid: "Submitted to Medicaid",
+  approved: "Approved",
+  denied: "Denied",
+};
 
 async function assertStaff(context: { supabase: any; userId: string }) {
   const { data: roles } = await context.supabase
