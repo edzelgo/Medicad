@@ -125,6 +125,21 @@ export const adminListDocuments = createServerFn({ method: "GET" })
     return (docs ?? []).map((d) => ({ ...d, owner_name: nameById.get(d.user_id) ?? null }));
   });
 
+export const adminGetDocumentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ document_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: doc, error: docErr } = await supabaseAdmin
+      .from("documents").select("storage_path").eq("id", data.document_id).single();
+    if (docErr || !doc) throw new Error("Document not found");
+    const { data: signed, error } = await supabaseAdmin
+      .storage.from("documents").createSignedUrl(doc.storage_path, 60 * 10);
+    if (error || !signed) throw new Error(error?.message ?? "Failed to sign URL");
+    return { url: signed.signedUrl };
+  });
+
 // ============================================================================
 // Client application pipeline
 // ============================================================================
