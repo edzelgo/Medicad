@@ -28,6 +28,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { submitLead } from "@/lib/leads.functions";
+import { SupportChatbot } from "@/components/support-chatbot";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
 import imgPace from "@/assets/service-pace.jpg";
@@ -590,6 +591,7 @@ function Index() {
           <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
         </div>
       </footer>
+      <SupportChatbot role="client" />
     </div>
   );
 }
