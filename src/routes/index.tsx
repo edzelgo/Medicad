@@ -591,6 +591,7 @@ function Index() {
           <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
         </div>
       </footer>
+      <SupportChatbot role="client" />
     </div>
   );
 }
