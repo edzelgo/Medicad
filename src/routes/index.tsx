@@ -25,9 +25,7 @@ import {
   Minus,
 } from "lucide-react";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { submitLead } from "@/lib/leads.functions";
 import { SupportChatbot } from "@/components/support-chatbot";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
@@ -206,13 +204,23 @@ function Index() {
               <a key={n.label} href={n.href} className="hover:text-primary transition">{n.label}</a>
             ))}
           </nav>
-          <Link
-            to="/auth"
-            search={{ role: "client" as const }}
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-95 transition"
-          >
-            Sign in <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href="/crm"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
+              target="_blank"
+              rel="noopener"
+            >
+              Staff CRM
+            </a>
+            <Link
+              to="/auth"
+              search={{ role: "client" as const }}
+              className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-95 transition"
+            >
+              Sign in <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -613,7 +621,6 @@ function Field({ label, type, name }: { label: string; type: string; name: strin
 }
 
 function ContactForm() {
-  const submit = useServerFn(submitLead);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
@@ -640,7 +647,22 @@ function ContactForm() {
     }
     setSubmitting(true);
     try {
-      await submit({ data: form });
+      const res = await fetch("/api/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          email: form.email,
+          phone: form.phone,
+          inquiryType: form.inquiryType,
+          smsConsent: form.smsConsent,
+          message: form.message,
+          source: "medicaidsuccess.com",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.ok) throw new Error(json.error || "Could not submit");
       setSuccess(true);
       toast.success("Thanks! A specialist will be in touch shortly.");
       setForm({ firstName: "", lastName: "", email: "", phone: "", inquiryType: "Nursing Home Resident", smsConsent: false, message: "" });

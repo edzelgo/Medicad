@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       check_ins: {
         Row: {
           body: string | null
@@ -73,37 +108,142 @@ export type Database = {
       }
       leads: {
         Row: {
+          address: string | null
+          assigned_to: string | null
+          brochure_provided: string[] | null
           created_at: string
-          email: string
-          first_name: string
+          created_by: string | null
+          date_first_coverage: string | null
+          dob: string | null
+          email: string | null
+          estimated_spend_down_remaining: number | null
+          first_name: string | null
+          full_name: string | null
+          has_lri: boolean
+          household_size: number | null
           id: string
           inquiry_type: string | null
-          last_name: string
+          last_name: string | null
+          lri_email: string | null
+          lri_first_name: string | null
+          lri_last_name: string | null
+          lri_phone: string | null
+          lri_status: string | null
+          marital_status: string | null
           message: string | null
+          middle_initial: string | null
+          monthly_income: number | null
+          notes: string | null
           phone: string | null
+          referral_status: string | null
+          retroactive_required: boolean | null
           sms_consent: boolean
+          source: string | null
+          spend_down_completed: boolean | null
+          spouse_dob: string | null
+          spouse_first_name: string | null
+          spouse_last_name: string | null
+          spouse_ssn: string | null
+          ssn: string | null
+          stage: Database["public"]["Enums"]["lead_stage"]
+          state: string | null
+          transfer_amount: number | null
+          transferred_resources_60mo: boolean | null
+          updated_at: string
+          veteran_status: string | null
+          zip: string | null
         }
         Insert: {
+          address?: string | null
+          assigned_to?: string | null
+          brochure_provided?: string[] | null
           created_at?: string
-          email: string
-          first_name: string
+          created_by?: string | null
+          date_first_coverage?: string | null
+          dob?: string | null
+          email?: string | null
+          estimated_spend_down_remaining?: number | null
+          first_name?: string | null
+          full_name?: string | null
+          has_lri?: boolean
+          household_size?: number | null
           id?: string
           inquiry_type?: string | null
-          last_name: string
+          last_name?: string | null
+          lri_email?: string | null
+          lri_first_name?: string | null
+          lri_last_name?: string | null
+          lri_phone?: string | null
+          lri_status?: string | null
+          marital_status?: string | null
           message?: string | null
+          middle_initial?: string | null
+          monthly_income?: number | null
+          notes?: string | null
           phone?: string | null
+          referral_status?: string | null
+          retroactive_required?: boolean | null
           sms_consent?: boolean
+          source?: string | null
+          spend_down_completed?: boolean | null
+          spouse_dob?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
+          spouse_ssn?: string | null
+          ssn?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          state?: string | null
+          transfer_amount?: number | null
+          transferred_resources_60mo?: boolean | null
+          updated_at?: string
+          veteran_status?: string | null
+          zip?: string | null
         }
         Update: {
+          address?: string | null
+          assigned_to?: string | null
+          brochure_provided?: string[] | null
           created_at?: string
-          email?: string
-          first_name?: string
+          created_by?: string | null
+          date_first_coverage?: string | null
+          dob?: string | null
+          email?: string | null
+          estimated_spend_down_remaining?: number | null
+          first_name?: string | null
+          full_name?: string | null
+          has_lri?: boolean
+          household_size?: number | null
           id?: string
           inquiry_type?: string | null
-          last_name?: string
+          last_name?: string | null
+          lri_email?: string | null
+          lri_first_name?: string | null
+          lri_last_name?: string | null
+          lri_phone?: string | null
+          lri_status?: string | null
+          marital_status?: string | null
           message?: string | null
+          middle_initial?: string | null
+          monthly_income?: number | null
+          notes?: string | null
           phone?: string | null
+          referral_status?: string | null
+          retroactive_required?: boolean | null
           sms_consent?: boolean
+          source?: string | null
+          spend_down_completed?: boolean | null
+          spouse_dob?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
+          spouse_ssn?: string | null
+          ssn?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          state?: string | null
+          transfer_amount?: number | null
+          transferred_resources_60mo?: boolean | null
+          updated_at?: string
+          veteran_status?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
@@ -210,6 +350,15 @@ export type Database = {
       }
     }
     Enums: {
+      lead_stage:
+        | "new"
+        | "intake"
+        | "screening"
+        | "application"
+        | "submitted"
+        | "approved"
+        | "denied"
+        | "closed"
       portal_role: "agent" | "referral" | "client" | "admin"
     }
     CompositeTypes: {
@@ -338,6 +487,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lead_stage: [
+        "new",
+        "intake",
+        "screening",
+        "application",
+        "submitted",
+        "approved",
+        "denied",
+        "closed",
+      ],
       portal_role: ["agent", "referral", "client", "admin"],
     },
   },
