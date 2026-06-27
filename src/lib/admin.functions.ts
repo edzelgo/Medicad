@@ -23,8 +23,12 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const { data: profiles } = await supabaseAdmin
-      .from("profiles").select("id, full_name, phone, created_at").order("created_at", { ascending: false });
+      .from("profiles")
+      .select("id, full_name, phone, created_at")
+      .order("created_at", { ascending: false });
+
     const { data: roles } = await supabaseAdmin
       .from("user_roles").select("user_id, role, status");
     const rolesByUser = new Map<string, { role: string; status: string }[]>();
@@ -33,7 +37,38 @@ export const adminListUsers = createServerFn({ method: "GET" })
       arr.push({ role: r.role, status: r.status });
       rolesByUser.set(r.user_id, arr);
     }
-    return (profiles ?? []).map((p) => ({ ...p, roles: rolesByUser.get(p.id) ?? [] }));
+
+    // Pull auth users (paginated) for email + last_sign_in_at
+    const authByUser = new Map<string, { email: string | null; last_sign_in_at: string | null; banned_until: string | null }>();
+    let page = 1;
+    while (page < 20) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error || !data?.users?.length) break;
+      for (const u of data.users) {
+        authByUser.set(u.id, {
+          email: u.email ?? null,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          banned_until: (u as any).banned_until ?? null,
+        });
+      }
+      if (data.users.length < 200) break;
+      page++;
+    }
+
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+    return (profiles ?? []).map((p) => {
+      const auth = authByUser.get(p.id);
+      const isBanned = !!(auth?.banned_until && new Date(auth.banned_until) > new Date());
+      const recentlyActive = auth?.last_sign_in_at && Date.now() - new Date(auth.last_sign_in_at).getTime() < THIRTY_DAYS;
+      const status = isBanned ? "inactive" : recentlyActive ? "active" : "inactive";
+      return {
+        ...p,
+        email: auth?.email ?? null,
+        last_sign_in_at: auth?.last_sign_in_at ?? null,
+        status,
+        roles: rolesByUser.get(p.id) ?? [],
+      };
+    });
   });
 
 export const adminListDocuments = createServerFn({ method: "GET" })
