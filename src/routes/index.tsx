@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useStaffStatus } from "@/hooks/use-staff-status";
 import { SupportChatbot } from "@/components/support-chatbot";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
@@ -185,6 +186,7 @@ const navItems = [
 ];
 
 function Index() {
+  const { isStaff } = useStaffStatus();
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
@@ -205,14 +207,14 @@ function Index() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <a
-              href="/crm"
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
-              target="_blank"
-              rel="noopener"
-            >
-              Staff CRM
-            </a>
+            {isStaff && (
+              <Link
+                to="/admin/users"
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
+              >
+                Admin
+              </Link>
+            )}
             <Link
               to="/auth"
               search={{ role: "client" as const }}
