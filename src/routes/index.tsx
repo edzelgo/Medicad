@@ -623,7 +623,6 @@ function Field({ label, type, name }: { label: string; type: string; name: strin
 }
 
 function ContactForm() {
-  const submit = useServerFn(submitLead);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
@@ -650,7 +649,22 @@ function ContactForm() {
     }
     setSubmitting(true);
     try {
-      await submit({ data: form });
+      const res = await fetch("/api/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          email: form.email,
+          phone: form.phone,
+          inquiryType: form.inquiryType,
+          smsConsent: form.smsConsent,
+          message: form.message,
+          source: "medicaidsuccess.com",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.ok) throw new Error(json.error || "Could not submit");
       setSuccess(true);
       toast.success("Thanks! A specialist will be in touch shortly.");
       setForm({ firstName: "", lastName: "", email: "", phone: "", inquiryType: "Nursing Home Resident", smsConsent: false, message: "" });
