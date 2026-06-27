@@ -25,9 +25,7 @@ import {
   Minus,
 } from "lucide-react";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { submitLead } from "@/lib/leads.functions";
 import { SupportChatbot } from "@/components/support-chatbot";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
