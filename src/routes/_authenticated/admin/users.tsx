@@ -6,6 +6,8 @@ import { adminListUsers } from "@/lib/admin.functions";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2, Circle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsers,
@@ -65,12 +67,13 @@ function AdminUsers() {
               <th className="px-3 py-2">Full Name</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Role</th>
+              <th className="px-3 py-2 w-56">Document progress</th>
               <th className="px-3 py-2">Sign-up Date</th>
               <th className="px-3 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td className="px-3 py-4 text-muted-foreground" colSpan={5}>Loading…</td></tr>}
+            {isLoading && <tr><td className="px-3 py-4 text-muted-foreground" colSpan={6}>Loading…</td></tr>}
             {filtered.map((u) => (
               <tr
                 key={u.id}
@@ -90,13 +93,21 @@ function AdminUsers() {
                       : <span className="text-muted-foreground">—</span>}
                   </div>
                 </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Progress value={u.progress.percent} aria-label="Document progress" className="h-2 flex-1" />
+                    <span className="text-xs tabular-nums text-muted-foreground w-14 text-right">
+                      {u.progress.satisfied}/{u.progress.total}
+                    </span>
+                  </div>
+                </td>
                 <td className="px-3 py-2 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                 <td className="px-3 py-2">
                   <Badge variant={u.status === "active" ? "default" : "outline"} className="capitalize">{u.status}</Badge>
                 </td>
               </tr>
             ))}
-            {!isLoading && !filtered.length && <tr><td className="px-3 py-4 text-muted-foreground" colSpan={5}>No users match.</td></tr>}
+            {!isLoading && !filtered.length && <tr><td className="px-3 py-4 text-muted-foreground" colSpan={6}>No users match.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -126,6 +137,45 @@ function AdminUsers() {
                         ))
                       : <span className="text-muted-foreground">No roles assigned</span>}
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs uppercase text-muted-foreground">Medicaid document checklist</div>
+                    <div className="text-xs tabular-nums text-muted-foreground">
+                      {selected.progress.satisfied}/{selected.progress.total} · {selected.progress.percent}%
+                    </div>
+                  </div>
+                  <Progress value={selected.progress.percent} aria-label="Document progress" className="h-2 mb-3" />
+                  <div className="text-xs text-muted-foreground mb-1">{selected.document_count} file(s) uploaded</div>
+
+                  {selected.progress.missing.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold text-foreground mb-1">Missing ({selected.progress.missing.length})</div>
+                      <ul className="space-y-1">
+                        {selected.progress.missing.map((m) => (
+                          <li key={m} className="flex items-start gap-2 text-sm">
+                            <Circle className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+                            <span>{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selected.progress.satisfiedLabels.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold text-foreground mb-1">Submitted ({selected.progress.satisfiedLabels.length})</div>
+                      <ul className="space-y-1">
+                        {selected.progress.satisfiedLabels.map((m) => (
+                          <li key={m} className="flex items-start gap-2 text-sm">
+                            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                            <span>{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
