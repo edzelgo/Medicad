@@ -186,6 +186,7 @@ const navItems = [
 ];
 
 function Index() {
+  const { isStaff } = useStaffStatus();
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
