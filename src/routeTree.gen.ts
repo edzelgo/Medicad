@@ -16,6 +16,7 @@ import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedCrmRouteRouteImport } from './routes/_authenticated/crm/route'
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm/index'
 import { Route as ApiPublicLeadsRouteImport } from './routes/api/public/leads'
+import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -51,12 +52,18 @@ const ApiPublicLeadsRoute = ApiPublicLeadsRouteImport.update({
   path: '/api/public/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCrmLeadsRoute = AuthenticatedCrmLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AuthenticatedCrmRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/crm': typeof AuthenticatedCrmRouteRouteWithChildren
   '/portal': typeof AuthenticatedPortalRoute
+  '/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/crm/': typeof AuthenticatedCrmIndexRoute
 }
@@ -64,6 +71,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/portal': typeof AuthenticatedPortalRoute
+  '/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/crm': typeof AuthenticatedCrmIndexRoute
 }
@@ -74,14 +82,22 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/crm': typeof AuthenticatedCrmRouteRouteWithChildren
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
+  '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/crm' | '/portal' | '/api/public/leads' | '/crm/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/crm'
+    | '/portal'
+    | '/crm/leads'
+    | '/api/public/leads'
+    | '/crm/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/portal' | '/api/public/leads' | '/crm'
+  to: '/' | '/auth' | '/portal' | '/crm/leads' | '/api/public/leads' | '/crm'
   id:
     | '__root__'
     | '/'
@@ -89,6 +105,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/crm'
     | '/_authenticated/portal'
+    | '/_authenticated/crm/leads'
     | '/api/public/leads'
     | '/_authenticated/crm/'
   fileRoutesById: FileRoutesById
@@ -151,14 +168,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/crm/leads': {
+      id: '/_authenticated/crm/leads'
+      path: '/leads'
+      fullPath: '/crm/leads'
+      preLoaderRoute: typeof AuthenticatedCrmLeadsRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
   }
 }
 
 interface AuthenticatedCrmRouteRouteChildren {
+  AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRoute
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
 }
 
 const AuthenticatedCrmRouteRouteChildren: AuthenticatedCrmRouteRouteChildren = {
+  AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRoute,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
 }
 
