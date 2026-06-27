@@ -1,6 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { computeRequirementProgress } from "@/lib/medicaid-requirements";
+import { z } from "zod";
+
+export const APPLICATION_STAGES = [
+  "new_lead",
+  "documents_pending",
+  "under_review",
+  "submitted_to_medicaid",
+  "approved",
+  "denied",
+] as const;
+export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
+export const APPLICATION_STAGE_LABEL: Record<ApplicationStage, string> = {
+  new_lead: "New Lead",
+  documents_pending: "Documents Pending",
+  under_review: "Under Review",
+  submitted_to_medicaid: "Submitted to Medicaid",
+  approved: "Approved",
+  denied: "Denied",
+};
 
 async function assertStaff(context: { supabase: any; userId: string }) {
   const { data: roles } = await context.supabase
@@ -104,4 +123,102 @@ export const adminListDocuments = createServerFn({ method: "GET" })
       .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
     const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
     return (docs ?? []).map((d) => ({ ...d, owner_name: nameById.get(d.user_id) ?? null }));
+  });
+
+// ============================================================================
+// Client application pipeline
+// ============================================================================
+
+export const adminListApplicationPipeline = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Only profiles of users with the "client" role appear on the application board.
+    const { data: clientRoles } = await supabaseAdmin
+      .from("user_roles").select("user_id").eq("role", "client");
+    const clientIds = (clientRoles ?? []).map((r) => r.user_id);
+    if (!clientIds.length) return [];
+
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, application_status, assigned_agent_id, application_status_updated_at, created_at")
+      .in("id", clientIds)
+      .order("created_at", { ascending: false });
+
+    const agentIds = Array.from(
+      new Set((profiles ?? []).map((p) => p.assigned_agent_id).filter(Boolean) as string[]),
+    );
+    const agentNameById = new Map<string, string | null>();
+    if (agentIds.length) {
+      const { data: agents } = await supabaseAdmin
+        .from("profiles").select("id, full_name").in("id", agentIds);
+      for (const a of agents ?? []) agentNameById.set(a.id, a.full_name);
+    }
+
+    return (profiles ?? []).map((p) => ({
+      id: p.id,
+      full_name: p.full_name,
+      application_status: p.application_status as ApplicationStage,
+      assigned_agent_id: p.assigned_agent_id,
+      assigned_agent_name: p.assigned_agent_id ? agentNameById.get(p.assigned_agent_id) ?? null : null,
+      created_at: p.created_at,
+      application_status_updated_at: p.application_status_updated_at,
+    }));
+  });
+
+export const adminListAgents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles").select("user_id").in("role", ["admin", "agent"]);
+    const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+    if (!ids.length) return [];
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles").select("id, full_name").in("id", ids);
+    return (profiles ?? []).map((p) => ({ id: p.id, full_name: p.full_name }));
+  });
+
+export const adminUpdateApplicationStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      profile_id: z.string().uuid(),
+      application_status: z.enum(APPLICATION_STAGES),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        application_status: data.application_status,
+        application_status_updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.profile_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminAssignAgent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      profile_id: z.string().uuid(),
+      agent_id: z.string().uuid().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ assigned_agent_id: data.agent_id })
+      .eq("id", data.profile_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

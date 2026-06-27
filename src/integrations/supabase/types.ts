@@ -249,6 +249,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          application_status: Database["public"]["Enums"]["application_status"]
+          application_status_updated_at: string
+          assigned_agent_id: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -256,6 +259,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          application_status?: Database["public"]["Enums"]["application_status"]
+          application_status_updated_at?: string
+          assigned_agent_id?: string | null
           created_at?: string
           full_name?: string | null
           id: string
@@ -263,6 +269,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          application_status?: Database["public"]["Enums"]["application_status"]
+          application_status_updated_at?: string
+          assigned_agent_id?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -350,6 +359,13 @@ export type Database = {
       }
     }
     Enums: {
+      application_status:
+        | "new_lead"
+        | "documents_pending"
+        | "under_review"
+        | "submitted_to_medicaid"
+        | "approved"
+        | "denied"
       lead_stage:
         | "new"
         | "intake"
@@ -487,6 +503,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      application_status: [
+        "new_lead",
+        "documents_pending",
+        "under_review",
+        "submitted_to_medicaid",
+        "approved",
+        "denied",
+      ],
       lead_stage: [
         "new",
         "intake",
