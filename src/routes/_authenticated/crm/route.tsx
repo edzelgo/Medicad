@@ -7,12 +7,13 @@ export const Route = createFileRoute("/_authenticated/crm")({
   component: CrmLayout,
 });
 
-const nav = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const nav: NavItem[] = [
   { to: "/crm", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/crm/leads", label: "Leads", icon: Users },
   { to: "/crm/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/crm/team", label: "Team", icon: Shield },
-] as const;
+];
 
 function CrmLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -29,7 +30,7 @@ function CrmLayout() {
             const active = n.exact ? path === n.to : path.startsWith(n.to);
             const Icon = n.icon;
             return (
-              <Link key={n.to} to={n.to} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}>
+              <Link key={n.to} to={n.to as string} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}>
                 <Icon className="h-4 w-4" /> {n.label}
               </Link>
             );
