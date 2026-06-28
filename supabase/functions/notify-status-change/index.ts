@@ -1,4 +1,4 @@
-import { admin, sendEmail, getUserEmail, layout, recordSent, corsHeaders } from "../_shared/email.ts";
+import { admin, sendEmail, getUserEmail, layout, statusTransition, recordSent, corsHeaders } from "../_shared/email.ts";
 
 const STATUS_LABEL: Record<string, string> = {
   new_lead: "New Lead",
@@ -37,13 +37,18 @@ Deno.serve(async (req) => {
     }
 
     const label = STATUS_LABEL[new_status] ?? new_status;
+    const oldLabel = old_status ? (STATUS_LABEL[old_status] ?? old_status) : null;
     const next = NEXT_STEP[new_status] ?? "Your case manager will contact you with more details.";
+    const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
     const html = layout(
-      `Your application status: ${label}`,
-      `<p>Hi${profile?.full_name ? " " + profile.full_name.split(" ")[0] : ""},</p>
-       <p>Your Medicaid application status has been updated to <strong>${label}</strong>${old_status ? ` (previously ${STATUS_LABEL[old_status] ?? old_status})` : ""}.</p>
-       <p><strong>What's next:</strong> ${next}</p>
-       <p><a href="https://medicaid-sucess-onboarding.lovable.app/portal" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">View my application</a></p>`,
+      `Application update: ${label}`,
+      `<p style="margin:0 0 12px">Hi${firstName ? " " + firstName : " there"},</p>
+       <p style="margin:0 0 8px">There's an update on your Medicaid application:</p>
+       ${statusTransition(oldLabel, label)}
+       <p style="margin:18px 0 6px;font-weight:600;color:#0b3d91">What happens next</p>
+       <p style="margin:0 0 12px">${next}</p>`,
+      { preheader: `Your application moved to ${label}.`,
+        cta: { label: "View my application" } },
     );
 
     await sendEmail(email, `Medicaid application update: ${label}`, html);
