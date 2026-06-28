@@ -1,4 +1,4 @@
-import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, corsHeaders } from "../_shared/email.ts";
+import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, checklist, corsHeaders } from "../_shared/email.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -25,17 +25,21 @@ Deno.serve(async (req) => {
       const email = await getUserEmail(p.id);
       if (!email) continue;
 
+      const firstName = p.full_name ? p.full_name.split(" ")[0] : "";
       const html = layout(
-        "Please upload your Medicaid documents",
-        `<p>Hi${p.full_name ? " " + p.full_name.split(" ")[0] : ""},</p>
-         <p>Your Medicaid application is on hold pending documents. Please upload the following to your portal:</p>
-         <ul>
-           <li>Government-issued photo ID</li>
-           <li>Proof of income (last 3 months)</li>
-           <li>Proof of residency</li>
-           <li>Medical records / level-of-care assessment</li>
-         </ul>
-         <p><a href="https://medicaid-sucess-onboarding.lovable.app/portal" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Upload documents</a></p>`,
+        "We need a few documents to keep your application moving",
+        `<p style="margin:0 0 12px">Hi${firstName ? " " + firstName : " there"},</p>
+         <p style="margin:0 0 12px">Your Medicaid application is currently on hold because we haven't received your supporting documents yet. Upload them in your portal and we'll resume your review right away.</p>
+         <p style="margin:18px 0 6px;font-weight:600;color:#0b3d91">Documents we need:</p>
+         ${checklist([
+           { label: "Government-issued photo ID" },
+           { label: "Proof of income (last 3 months)" },
+           { label: "Proof of residency" },
+           { label: "Medical records / level-of-care assessment" },
+         ])}
+         <p style="margin:18px 0 0">You can upload up to 200 files at once — we'll handle organizing and combining them for you.</p>`,
+        { preheader: "Upload your ID, proof of income, residency, and medical records to resume your review.",
+          cta: { label: "Upload documents" } },
       );
       await sendEmail(email, "Documents needed for your Medicaid application", html);
       await recordSent(p.id, "missing_documents", "v1");
