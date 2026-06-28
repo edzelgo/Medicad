@@ -1,4 +1,4 @@
-import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, corsHeaders } from "../_shared/email.ts";
+import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, checklist, corsHeaders } from "../_shared/email.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -22,13 +22,22 @@ Deno.serve(async (req) => {
       const email = await getUserEmail(p.id);
       if (!email) continue;
 
-      const items = missing.map((m) => `<li>${m}</li>`).join("");
+      const allFields = [
+        { label: "Full name", key: "Full name" },
+        { label: "Phone number", key: "Phone number" },
+        { label: "Mailing address", key: "Mailing address" },
+      ];
+      const items = allFields.map((f) => ({ label: f.label, done: !missing.includes(f.key) }));
+      const firstName = p.full_name ? p.full_name.split(" ")[0] : "";
       const html = layout(
-        "Finish your Medicaid application",
-        `<p>Hi${p.full_name ? " " + p.full_name.split(" ")[0] : ""},</p>
-         <p>You started your Medicaid Success application but haven't completed your profile yet. To keep your application moving, please add:</p>
-         <ul>${items}</ul>
-         <p><a href="https://medicaid-sucess-onboarding.lovable.app/portal" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Complete my profile</a></p>`,
+        "Let's finish your Medicaid application",
+        `<p style="margin:0 0 12px">Hi${firstName ? " " + firstName : " there"},</p>
+         <p style="margin:0 0 12px">You started your Medicaid Success application but a few profile details are still missing. Adding them takes about two minutes and lets your case manager begin reviewing your eligibility right away.</p>
+         <p style="margin:18px 0 6px;font-weight:600;color:#0b3d91">Still needed on your profile:</p>
+         ${checklist(items)}
+         <p style="margin:18px 0 0">Once these are in, we'll reach out within one business day with next steps.</p>`,
+        { preheader: `You're ${missing.length} field${missing.length === 1 ? "" : "s"} away from completing your application.`,
+          cta: { label: "Complete my profile" } },
       );
       await sendEmail(email, "Action needed: complete your Medicaid application", html);
       await recordSent(p.id, "abandoned_application", "v1");
