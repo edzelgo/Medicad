@@ -1,1 +1,9 @@
 project_id = "zggucwzagnuxbnyxmciz"
+[functions.send-abandoned-reminder]
+verify_jwt = false
+
+[functions.send-missing-documents-reminder]
+verify_jwt = false
+
+[functions.notify-status-change]
+verify_jwt = false

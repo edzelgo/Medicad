@@ -106,6 +106,30 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notifications_log: {
+        Row: {
+          context: string | null
+          id: string
+          kind: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: string | null
+          id?: string
+          kind: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: string | null
+          id?: string
+          kind?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           address: string | null
@@ -249,6 +273,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           application_status: Database["public"]["Enums"]["application_status"]
           application_status_updated_at: string
           assigned_agent_id: string | null
@@ -259,6 +284,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
           application_status?: Database["public"]["Enums"]["application_status"]
           application_status_updated_at?: string
           assigned_agent_id?: string | null
@@ -269,6 +295,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
           application_status?: Database["public"]["Enums"]["application_status"]
           application_status_updated_at?: string
           assigned_agent_id?: string | null
