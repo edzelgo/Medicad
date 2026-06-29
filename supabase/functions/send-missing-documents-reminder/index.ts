@@ -1,7 +1,9 @@
-import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, checklist, corsHeaders } from "../_shared/email.ts";
+import { admin, alreadySent, recordSent, sendEmail, getUserEmail, layout, checklist, corsHeaders, requireCronAuth } from "../_shared/email.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = requireCronAuth(req);
+  if (unauth) return unauth;
   try {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data: profiles, error } = await admin
