@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 export const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 export const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 export const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+export const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
 export const FROM_ADDRESS = "Medicaid Success <onboarding@resend.dev>";
 
@@ -13,8 +14,41 @@ export const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
+
+// Constant-time-ish string compare.
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+// Returns null when authorized; otherwise a Response to return immediately.
+export function requireCronAuth(req: Request): Response | null {
+  if (!CRON_SECRET) {
+    return new Response(JSON.stringify({ ok: false, error: "Server misconfigured" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const auth = req.headers.get("authorization") ?? "";
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  const headerSecret = req.headers.get("x-cron-secret") ?? "";
+  if (safeEqual(bearer, CRON_SECRET) || safeEqual(headerSecret, CRON_SECRET)) return null;
+  return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+    status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+export function escapeHtml(input: unknown): string {
+  return String(input ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch("https://api.resend.com/emails", {
