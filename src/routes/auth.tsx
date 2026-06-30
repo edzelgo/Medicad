@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Shield, UserPlus, Users, Lock } from "lucide-react";
 
-type PortalRole = "agent" | "referral" | "client";
-const roleSchema = z.enum(["agent", "referral", "client"]);
+type PortalRole = "agent" | "referral" | "client" | "staff";
+const roleSchema = z.enum(["agent", "referral", "client", "staff"]);
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -35,6 +35,7 @@ const roleMeta = {
   agent: { label: "Agent", icon: Shield, blurb: "Licensed producers and brokers." },
   referral: { label: "Referral Partner", icon: UserPlus, blurb: "Hospitals, clinics, community organizations." },
   client: { label: "Client", icon: Users, blurb: "Medicaid applicants and family members." },
+  staff: { label: "Staff / Admin", icon: Lock, blurb: "Medicaid Success internal team. Admin & agent accounts only — no self sign-up." },
 } as const;
 
 function AuthPage() {
@@ -72,8 +73,8 @@ function AuthPage() {
           </Link>
 
           {/* Role chooser */}
-          <div className="flex gap-2 mb-8">
-            {(["agent", "referral", "client"] as const).map((r) => {
+          <div className="flex flex-wrap gap-2 mb-8">
+            {(["agent", "referral", "client", "staff"] as const).map((r) => {
               const RIcon = roleMeta[r].icon;
               const active = r === role;
               return (
@@ -96,14 +97,23 @@ function AuthPage() {
           <h2 className="font-serif text-3xl">{roleMeta[role].label} access</h2>
           <p className="text-sm text-muted-foreground mt-1">Sign in to your portal or create a new account.</p>
 
-          <Tabs defaultValue="signin" className="mt-8">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin"><SignInForm onDone={() => navigate({ to: "/portal" })} /></TabsContent>
-            <TabsContent value="signup"><SignUpForm role={role} onDone={() => navigate({ to: "/portal" })} /></TabsContent>
-          </Tabs>
+          {role === "staff" ? (
+            <div className="mt-8">
+              <div className="mb-4 rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
+                Staff and admin accounts are provisioned internally. Sign in with the credentials issued to you.
+              </div>
+              <SignInForm onDone={() => navigate({ to: "/admin/users" })} />
+            </div>
+          ) : (
+            <Tabs defaultValue="signin" className="mt-8">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="signin">Sign in</TabsTrigger>
+                <TabsTrigger value="signup">Create account</TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin"><SignInForm onDone={() => navigate({ to: "/portal" })} /></TabsContent>
+              <TabsContent value="signup"><SignUpForm role={role as "agent" | "referral" | "client"} onDone={() => navigate({ to: "/portal" })} /></TabsContent>
+            </Tabs>
+          )}
 
           <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
             <div className="h-px bg-border flex-1" /> OR <div className="h-px bg-border flex-1" />
