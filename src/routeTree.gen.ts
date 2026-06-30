@@ -18,6 +18,7 @@ import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authentic
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicLeadsRouteImport } from './routes/api/public/leads'
+import { Route as ApiPublicBootstrapAdminsRouteImport } from './routes/api/public/bootstrap-admins'
 import { Route as AuthenticatedCrmTeamRouteImport } from './routes/_authenticated/crm/team'
 import { Route as AuthenticatedCrmPipelineRouteImport } from './routes/_authenticated/crm/pipeline'
 import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
@@ -71,6 +72,12 @@ const ApiPublicLeadsRoute = ApiPublicLeadsRouteImport.update({
   path: '/api/public/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBootstrapAdminsRoute =
+  ApiPublicBootstrapAdminsRouteImport.update({
+    id: '/api/public/bootstrap-admins',
+    path: '/api/public/bootstrap-admins',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedCrmTeamRoute = AuthenticatedCrmTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
+  '/api/public/bootstrap-admins': typeof ApiPublicBootstrapAdminsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/crm/': typeof AuthenticatedCrmIndexRoute
@@ -144,6 +152,7 @@ export interface FileRoutesByTo {
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
+  '/api/public/bootstrap-admins': typeof ApiPublicBootstrapAdminsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/crm': typeof AuthenticatedCrmIndexRoute
@@ -164,6 +173,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/_authenticated/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/_authenticated/crm/team': typeof AuthenticatedCrmTeamRoute
+  '/api/public/bootstrap-admins': typeof ApiPublicBootstrapAdminsRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/pipeline'
     | '/crm/team'
+    | '/api/public/bootstrap-admins'
     | '/api/public/leads'
     | '/admin/'
     | '/crm/'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/pipeline'
     | '/crm/team'
+    | '/api/public/bootstrap-admins'
     | '/api/public/leads'
     | '/admin'
     | '/crm'
@@ -219,6 +231,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/leads'
     | '/_authenticated/crm/pipeline'
     | '/_authenticated/crm/team'
+    | '/api/public/bootstrap-admins'
     | '/api/public/leads'
     | '/_authenticated/admin/'
     | '/_authenticated/crm/'
@@ -230,6 +243,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicBootstrapAdminsRoute: typeof ApiPublicBootstrapAdminsRoute
   ApiPublicLeadsRoute: typeof ApiPublicLeadsRoute
 }
 
@@ -296,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/leads'
       fullPath: '/api/public/leads'
       preLoaderRoute: typeof ApiPublicLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bootstrap-admins': {
+      id: '/api/public/bootstrap-admins'
+      path: '/api/public/bootstrap-admins'
+      fullPath: '/api/public/bootstrap-admins'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/crm/team': {
@@ -430,6 +451,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicBootstrapAdminsRoute: ApiPublicBootstrapAdminsRoute,
   ApiPublicLeadsRoute: ApiPublicLeadsRoute,
 }
 export const routeTree = rootRouteImport
