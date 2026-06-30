@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions";
+import { getPortalAccess } from "@/lib/portal-access.functions";
 import { analyzeEligibility } from "@/lib/eligibility.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,13 @@ const MAX_FILE_MB = 25;
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "Your Portal — Medicaid Success" }] }),
+  beforeLoad: async () => {
+    const access = await getPortalAccess();
+    if (access.isAdmin) throw redirect({ to: "/admin/users" });
+    if (!access.allowed) {
+      throw redirect({ to: "/auth", search: { role: "client" as const } });
+    }
+  },
   component: PortalPage,
 });
 
