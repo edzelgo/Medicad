@@ -215,6 +215,15 @@ function Index() {
                 Admin
               </Link>
             )}
+            {!isStaff && (
+              <Link
+                to="/auth"
+                search={{ role: "staff" as const }}
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
+              >
+                Staff sign in
+              </Link>
+            )}
             <Link
               to="/auth"
               search={{ role: "client" as const }}
