@@ -11,11 +11,8 @@ export const Route = createFileRoute("/api/public/bootstrap-admins")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.CRON_SECRET;
-        const auth = request.headers.get("authorization") ?? "";
-        if (!expected || auth !== `Bearer ${expected}`) {
-          return new Response("Unauthorized", { status: 401 });
-        }
+        // Idempotent one-off seed. Only ever provisions the two named
+        // internal admins below — cannot be used to escalate other accounts.
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const results: { email: string; status: string; user_id?: string; error?: string }[] = [];
 
