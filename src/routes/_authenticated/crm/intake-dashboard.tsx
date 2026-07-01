@@ -5,12 +5,14 @@ import { useMemo, useState } from "react";
 import {
   listIntakeCases,
   updateIntakeCase,
+  listIntakeCaseEvents,
   WORKFLOW_OPTIONS,
   STATUS_OPTIONS,
   type IntakeCase,
+  type IntakeCaseEvent,
 } from "@/lib/intake-dashboard.functions";
 import { Input } from "@/components/ui/input";
-import { Filter, FileText, Loader2 } from "lucide-react";
+import { Filter, FileText, Loader2, X, History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +37,14 @@ const WORKFLOW_COLORS: Record<string, string> = {
 function IntakeDashboard() {
   const fn = useServerFn(listIntakeCases);
   const updateFn = useServerFn(updateIntakeCase);
+  const eventsFn = useServerFn(listIntakeCaseEvents);
   const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["intake-cases"], queryFn: () => fn() });
   const [query, setQuery] = useState("");
   const [agent, setAgent] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [workflowFilter, setWorkflowFilter] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -51,14 +57,40 @@ function IntakeDashboard() {
       agent?: string | null;
       follow_up_date?: string | null;
     }) => updateFn({ data: vars }),
-    onMutate: (vars) => setPendingId(vars.id),
+    onMutate: async (vars) => {
+      setPendingId(vars.id);
+      await qc.cancelQueries({ queryKey: ["intake-cases"] });
+      const previous = qc.getQueryData<IntakeCase[]>(["intake-cases"]);
+      qc.setQueryData<IntakeCase[]>(["intake-cases"], (prev) =>
+        (prev ?? []).map((c) =>
+          c.id === vars.id
+            ? {
+                ...c,
+                ...(vars.workflow !== undefined ? { workflow: vars.workflow } : {}),
+                ...(vars.status !== undefined
+                  ? { status: vars.status, status_date: new Date().toISOString().slice(0, 10) }
+                  : {}),
+                ...(vars.agent !== undefined ? { agent: vars.agent } : {}),
+                ...(vars.follow_up_date !== undefined
+                  ? { follow_up_date: vars.follow_up_date }
+                  : {}),
+              }
+            : c,
+        ),
+      );
+      return { previous };
+    },
     onSuccess: (row) => {
       qc.setQueryData<IntakeCase[]>(["intake-cases"], (prev) =>
         (prev ?? []).map((c) => (c.id === row.id ? row : c)),
       );
+      qc.invalidateQueries({ queryKey: ["intake-case-events", row.id] });
       toast.success("Case updated");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["intake-cases"], ctx.previous);
+      toast.error(`Update failed: ${e.message}`, { duration: 6000 });
+    },
     onSettled: () => setPendingId(null),
   });
 
@@ -89,6 +121,9 @@ function IntakeDashboard() {
     return data.filter((c) => {
       if (agent !== "All" && c.agent !== agent) return false;
       if (workflowFilter && c.workflow !== workflowFilter) return false;
+      if (statusFilter !== "All" && c.status !== statusFilter) return false;
+      if (dateFrom && (!c.date_received || c.date_received < dateFrom)) return false;
+      if (dateTo && (!c.date_received || c.date_received > dateTo)) return false;
       if (!q) return true;
       return (
         (c.first_name ?? "").toLowerCase().includes(q) ||
@@ -98,7 +133,16 @@ function IntakeDashboard() {
         (c.workflow ?? "").toLowerCase().includes(q)
       );
     });
-  }, [data, query, agent, workflowFilter]);
+  }, [data, query, agent, workflowFilter, statusFilter, dateFrom, dateTo]);
+
+  const hasActiveFilters =
+    !!query || agent !== "All" || !!workflowFilter ||
+    statusFilter !== "All" || !!dateFrom || !!dateTo;
+
+  const resetFilters = () => {
+    setQuery(""); setAgent("All"); setWorkflowFilter(null);
+    setStatusFilter("All"); setDateFrom(""); setDateTo("");
+  };
 
   const total = data.length;
 
@@ -157,27 +201,62 @@ function IntakeDashboard() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border border-border bg-card p-3 flex flex-wrap gap-3 items-center">
+      <div className="rounded-lg border border-border bg-card p-3 flex flex-wrap gap-3 items-end">
+        <div className="flex items-center gap-2 self-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Input
           placeholder="Search name, case #, status…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="max-w-xs"
         />
-        <select
-          value={agent}
-          onChange={(e) => setAgent(e.target.value)}
-          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-        >
-          {agents.map((a) => <option key={a} value={a}>{a === "All" ? "All Agents" : a}</option>)}
-        </select>
+        <label className="text-[11px] text-muted-foreground space-y-1">
+          <div>Status</div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="All">All Statuses</option>
+            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label className="text-[11px] text-muted-foreground space-y-1">
+          <div>Agent</div>
+          <select
+            value={agent}
+            onChange={(e) => setAgent(e.target.value)}
+            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            {agents.map((a) => <option key={a} value={a}>{a === "All" ? "All Agents" : a}</option>)}
+          </select>
+        </label>
+        <label className="text-[11px] text-muted-foreground space-y-1">
+          <div>Received from</div>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-[150px]" />
+        </label>
+        <label className="text-[11px] text-muted-foreground space-y-1">
+          <div>Received to</div>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-[150px]" />
+        </label>
         {workflowFilter && (
-          <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
-            Workflow: {workflowFilter} ×
-          </span>
+          <button
+            onClick={() => setWorkflowFilter(null)}
+            className="text-xs px-2 py-1 rounded bg-primary/10 text-primary inline-flex items-center gap-1"
+          >
+            Workflow: {workflowFilter} <X className="h-3 w-3" />
+          </button>
         )}
-        <span className="text-xs text-muted-foreground ml-auto">
+        {hasActiveFilters && (
+          <button
+            onClick={resetFilters}
+            className="h-9 text-xs px-3 rounded-md border border-border hover:bg-muted inline-flex items-center gap-1"
+          >
+            <X className="h-3 w-3" /> Reset filters
+          </button>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto self-center">
           {filtered.length} of {total}
         </span>
       </div>
@@ -268,7 +347,7 @@ function IntakeDashboard() {
       </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelectedId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {selected && (
             <>
               <DialogHeader>
@@ -332,6 +411,7 @@ function IntakeDashboard() {
                   </label>
                 </div>
               </div>
+              <CaseTimeline caseId={selected.id} eventsFn={eventsFn} />
             </>
           )}
         </DialogContent>
@@ -345,6 +425,60 @@ function Field({ label, value }: { label: string; value: string | null | undefin
     <div>
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="text-sm mt-0.5">{value ?? "—"}</div>
+    </div>
+  );
+}
+
+function CaseTimeline({
+  caseId,
+  eventsFn,
+}: {
+  caseId: string;
+  eventsFn: (args: { data: { caseId: string } }) => Promise<IntakeCaseEvent[]>;
+}) {
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["intake-case-events", caseId],
+    queryFn: () => eventsFn({ data: { caseId } }),
+  });
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        <History className="h-3.5 w-3.5" /> Activity timeline
+      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+        </div>
+      ) : data.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No changes recorded yet.</div>
+      ) : (
+        <ol className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {data.map((ev) => (
+            <li
+              key={ev.id}
+              className="text-xs border-l-2 border-primary/40 pl-3 py-1"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold capitalize">
+                  {ev.field.replace("_", " ")}
+                </span>
+                <span className="text-muted-foreground">
+                  {new Date(ev.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div className="mt-0.5">
+                <span className="text-muted-foreground line-through">
+                  {ev.old_value ?? "—"}
+                </span>{" "}
+                → <span className="font-medium">{ev.new_value ?? "—"}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                by {ev.actor_email ?? "system"}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
