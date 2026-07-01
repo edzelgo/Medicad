@@ -28,16 +28,85 @@ export type IntakeCase = {
   agent: string | null;
 };
 
+const filterSchema = z.object({
+  q: z.string().optional(),
+  workflow: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  agent: z.string().nullable().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+function applyFilters(builder: any, f: z.infer<typeof filterSchema>) {
+  if (f.workflow) builder = builder.eq("workflow", f.workflow);
+  if (f.status) builder = builder.eq("status", f.status);
+  if (f.agent) builder = builder.eq("agent", f.agent);
+  if (f.dateFrom) builder = builder.gte("date_received", f.dateFrom);
+  if (f.dateTo) builder = builder.lte("date_received", f.dateTo);
+  if (f.q && f.q.trim()) {
+    const q = f.q.trim().replace(/[%,]/g, "");
+    const p = `%${q}%`;
+    builder = builder.or(
+      `first_name.ilike.${p},last_name.ilike.${p},case_id.ilike.${p},status.ilike.${p},workflow.ilike.${p}`,
+    );
+  }
+  return builder;
+}
+
+const listSchema = filterSchema.extend({
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(200).default(50),
+});
+
+export type IntakeListResult = {
+  rows: IntakeCase[];
+  total: number;
+  agents: string[];
+  workflowStats: Record<string, Record<string, number>>;
+  totalAll: number;
+};
+
 export const listIntakeCases = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<IntakeCase[]> => {
+  .inputValidator((d: unknown) => listSchema.parse(d ?? {}))
+  .handler(async ({ data, context }): Promise<IntakeListResult> => {
     await assertStaff(context);
-    const { data, error } = await context.supabase
+    const from = (data.page - 1) * data.pageSize;
+    const to = from + data.pageSize - 1;
+
+    let builder = context.supabase
       .from("intake_cases")
-      .select("*")
-      .order("date_received", { ascending: false, nullsFirst: false });
+      .select("*", { count: "exact" })
+      .order("date_received", { ascending: false, nullsFirst: false })
+      .range(from, to);
+    builder = applyFilters(builder, data);
+
+    const { data: rows, error, count } = await builder;
     if (error) throw new Error(error.message);
-    return (data ?? []) as IntakeCase[];
+
+    // Aggregates use the full table (no filters), lightweight columns only.
+    const { data: aggRows, error: aggErr } = await context.supabase
+      .from("intake_cases")
+      .select("workflow,status,agent");
+    if (aggErr) throw new Error(aggErr.message);
+
+    const agentsSet = new Set<string>();
+    const workflowStats: Record<string, Record<string, number>> = {};
+    for (const r of aggRows ?? []) {
+      if (r.agent) agentsSet.add(r.agent);
+      const wf = r.workflow || "Unassigned";
+      const st = r.status || "—";
+      workflowStats[wf] = workflowStats[wf] ?? {};
+      workflowStats[wf][st] = (workflowStats[wf][st] ?? 0) + 1;
+    }
+
+    return {
+      rows: (rows ?? []) as IntakeCase[],
+      total: count ?? 0,
+      agents: Array.from(agentsSet).sort(),
+      workflowStats,
+      totalAll: (aggRows ?? []).length,
+    };
   });
 
 export const WORKFLOW_OPTIONS = [
@@ -124,4 +193,86 @@ export const listIntakeCaseEvents = createServerFn({ method: "GET" })
       .limit(200);
     if (error) throw new Error(error.message);
     return (rows ?? []) as IntakeCaseEvent[];
+  });
+
+const bulkSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  workflow: z.string().min(1).nullable().optional(),
+  status: z.string().min(1).nullable().optional(),
+});
+
+export const bulkUpdateIntakeCases = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => bulkSchema.parse(d))
+  .handler(async ({ data, context }): Promise<{ updated: number }> => {
+    await assertStaff(context);
+    if (data.workflow === undefined && data.status === undefined) {
+      throw new Error("Nothing to update");
+    }
+    const patch: {
+      workflow?: string | null;
+      status?: string | null;
+      status_date?: string;
+    } = {};
+    if (data.workflow !== undefined) patch.workflow = data.workflow;
+    if (data.status !== undefined) {
+      patch.status = data.status;
+      patch.status_date = new Date().toISOString().slice(0, 10);
+    }
+    const { error, count } = await context.supabase
+      .from("intake_cases")
+      .update(patch, { count: "exact" })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { updated: count ?? 0 };
+  });
+
+export type IntakeExportRow = IntakeCase & {
+  last_change_at: string | null;
+  last_change_field: string | null;
+  last_change_from: string | null;
+  last_change_to: string | null;
+  last_change_by: string | null;
+};
+
+export const exportIntakeCases = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => filterSchema.parse(d ?? {}))
+  .handler(async ({ data, context }): Promise<IntakeExportRow[]> => {
+    await assertStaff(context);
+    let builder = context.supabase
+      .from("intake_cases")
+      .select("*")
+      .order("date_received", { ascending: false, nullsFirst: false })
+      .limit(5000);
+    builder = applyFilters(builder, data);
+    const { data: rows, error } = await builder;
+    if (error) throw new Error(error.message);
+    const cases = (rows ?? []) as IntakeCase[];
+    if (!cases.length) return [];
+
+    const ids = cases.map((c) => c.id);
+    const { data: events, error: evErr } = await context.supabase
+      .from("intake_case_events")
+      .select("case_id,field,old_value,new_value,actor_email,created_at")
+      .in("case_id", ids)
+      .order("created_at", { ascending: false });
+    if (evErr) throw new Error(evErr.message);
+
+    const latest = new Map<string, any>();
+    for (const ev of events ?? []) {
+      if (!latest.has(ev.case_id)) latest.set(ev.case_id, ev);
+    }
+
+    return cases.map((c) => {
+      const ev = latest.get(c.id);
+      return {
+        ...c,
+        last_change_at: ev?.created_at ?? null,
+        last_change_field: ev?.field ?? null,
+        last_change_from: ev?.old_value ?? null,
+        last_change_to: ev?.new_value ?? null,
+        last_change_by: ev?.actor_email ?? null,
+      };
+    });
   });
