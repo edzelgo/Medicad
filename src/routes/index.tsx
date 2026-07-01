@@ -294,6 +294,40 @@ function Index() {
 
       {/* The Medicaid Success Advantage */}
       <section id="services" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+        {/* Portal sign-in cards */}
+      </section>
+      <section id="portals" className="max-w-7xl mx-auto px-6 lg:px-10 -mt-10 lg:-mt-14 relative z-10">
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { role: "client" as const, title: "Client Portal", desc: "Upload your Medicaid documents securely and track your case.", cta: "Client sign in" },
+            { role: "agent" as const, title: "Agent Portal", desc: "Submit client packets, manage referrals, and track approvals.", cta: "Agent sign in" },
+            { role: "referral" as const, title: "Referral Portal", desc: "For nursing homes, PACE, and home care partners.", cta: "Referral sign in" },
+          ].map((p) => (
+            <div key={p.role} className="rounded-2xl bg-card border border-border shadow-[var(--shadow-card)] p-7 flex flex-col">
+              <h3 className="font-serif text-2xl text-primary">{p.title}</h3>
+              <p className="mt-2 text-foreground text-base leading-relaxed flex-1">{p.desc}</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link
+                  to="/auth"
+                  search={{ role: p.role }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-95 transition"
+                >
+                  {p.cta} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to="/auth"
+                  search={{ role: p.role }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
+                >
+                  Create account
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Our Solutions</span>
           <h2 className="mt-3 font-serif text-4xl lg:text-5xl text-primary">The Medicaid Success Advantage</h2>
