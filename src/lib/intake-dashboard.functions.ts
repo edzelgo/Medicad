@@ -209,7 +209,11 @@ export const bulkUpdateIntakeCases = createServerFn({ method: "POST" })
     if (data.workflow === undefined && data.status === undefined) {
       throw new Error("Nothing to update");
     }
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      workflow?: string | null;
+      status?: string | null;
+      status_date?: string;
+    } = {};
     if (data.workflow !== undefined) patch.workflow = data.workflow;
     if (data.status !== undefined) {
       patch.status = data.status;
