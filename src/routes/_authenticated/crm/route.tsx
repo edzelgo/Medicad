@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Users, KanbanSquare, Shield, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, Shield, LogOut, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/crm")({
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const nav: NavItem[] = [
   { to: "/crm", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/crm/intake-dashboard", label: "Intake Dashboard", icon: ClipboardList },
   { to: "/crm/leads", label: "Leads", icon: Users },
   { to: "/crm/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/crm/team", label: "Team", icon: Shield },

@@ -130,6 +130,69 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_cases: {
+        Row: {
+          agent: string | null
+          case_id: string
+          created_at: string
+          date_received: string | null
+          first_name: string | null
+          follow_count: number
+          follow_up_date: string | null
+          id: string
+          last_name: string | null
+          marketer: string | null
+          notes_count: number
+          phone: string | null
+          ref_source: string | null
+          status: string | null
+          status_date: string | null
+          track_count: number
+          updated_at: string
+          workflow: string | null
+        }
+        Insert: {
+          agent?: string | null
+          case_id: string
+          created_at?: string
+          date_received?: string | null
+          first_name?: string | null
+          follow_count?: number
+          follow_up_date?: string | null
+          id?: string
+          last_name?: string | null
+          marketer?: string | null
+          notes_count?: number
+          phone?: string | null
+          ref_source?: string | null
+          status?: string | null
+          status_date?: string | null
+          track_count?: number
+          updated_at?: string
+          workflow?: string | null
+        }
+        Update: {
+          agent?: string | null
+          case_id?: string
+          created_at?: string
+          date_received?: string | null
+          first_name?: string | null
+          follow_count?: number
+          follow_up_date?: string | null
+          id?: string
+          last_name?: string | null
+          marketer?: string | null
+          notes_count?: number
+          phone?: string | null
+          ref_source?: string | null
+          status?: string | null
+          status_date?: string | null
+          track_count?: number
+          updated_at?: string
+          workflow?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           address: string | null
