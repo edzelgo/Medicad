@@ -76,7 +76,13 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => updateSchema.parse(d))
   .handler(async ({ data, context }): Promise<IntakeCase> => {
     await assertStaff(context);
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      workflow?: string | null;
+      status?: string | null;
+      status_date?: string;
+      agent?: string | null;
+      follow_up_date?: string | null;
+    } = {};
     if (data.workflow !== undefined) patch.workflow = data.workflow;
     if (data.status !== undefined) {
       patch.status = data.status;
