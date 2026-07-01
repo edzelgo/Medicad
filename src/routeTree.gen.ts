@@ -21,7 +21,6 @@ import { Route as ApiPublicLeadsRouteImport } from './routes/api/public/leads'
 import { Route as AuthenticatedCrmTeamRouteImport } from './routes/_authenticated/crm/team'
 import { Route as AuthenticatedCrmPipelineRouteImport } from './routes/_authenticated/crm/pipeline'
 import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
-import { Route as AuthenticatedCrmIntakeDashboardRouteImport } from './routes/_authenticated/crm/intake-dashboard'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin/pipeline'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
@@ -88,12 +87,6 @@ const AuthenticatedCrmLeadsRoute = AuthenticatedCrmLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AuthenticatedCrmRouteRoute,
 } as any)
-const AuthenticatedCrmIntakeDashboardRoute =
-  AuthenticatedCrmIntakeDashboardRouteImport.update({
-    id: '/intake-dashboard',
-    path: '/intake-dashboard',
-    getParentRoute: () => AuthenticatedCrmRouteRoute,
-  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -132,7 +125,6 @@ export interface FileRoutesByFullPath {
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
@@ -149,7 +141,6 @@ export interface FileRoutesByTo {
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
@@ -170,7 +161,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/_authenticated/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/_authenticated/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/_authenticated/crm/team': typeof AuthenticatedCrmTeamRoute
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/admin/documents'
     | '/admin/pipeline'
     | '/admin/users'
-    | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/pipeline'
     | '/crm/team'
@@ -208,7 +197,6 @@ export interface FileRouteTypes {
     | '/admin/documents'
     | '/admin/pipeline'
     | '/admin/users'
-    | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/pipeline'
     | '/crm/team'
@@ -228,7 +216,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/documents'
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/users'
-    | '/_authenticated/crm/intake-dashboard'
     | '/_authenticated/crm/leads'
     | '/_authenticated/crm/pipeline'
     | '/_authenticated/crm/team'
@@ -332,13 +319,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmLeadsRouteImport
       parentRoute: typeof AuthenticatedCrmRouteRoute
     }
-    '/_authenticated/crm/intake-dashboard': {
-      id: '/_authenticated/crm/intake-dashboard'
-      path: '/intake-dashboard'
-      fullPath: '/crm/intake-dashboard'
-      preLoaderRoute: typeof AuthenticatedCrmIntakeDashboardRouteImport
-      parentRoute: typeof AuthenticatedCrmRouteRoute
-    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/users'
@@ -413,7 +393,6 @@ const AuthenticatedCrmLeadsRouteWithChildren =
   )
 
 interface AuthenticatedCrmRouteRouteChildren {
-  AuthenticatedCrmIntakeDashboardRoute: typeof AuthenticatedCrmIntakeDashboardRoute
   AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRouteWithChildren
   AuthenticatedCrmPipelineRoute: typeof AuthenticatedCrmPipelineRoute
   AuthenticatedCrmTeamRoute: typeof AuthenticatedCrmTeamRoute
@@ -421,7 +400,6 @@ interface AuthenticatedCrmRouteRouteChildren {
 }
 
 const AuthenticatedCrmRouteRouteChildren: AuthenticatedCrmRouteRouteChildren = {
-  AuthenticatedCrmIntakeDashboardRoute: AuthenticatedCrmIntakeDashboardRoute,
   AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRouteWithChildren,
   AuthenticatedCrmPipelineRoute: AuthenticatedCrmPipelineRoute,
   AuthenticatedCrmTeamRoute: AuthenticatedCrmTeamRoute,
