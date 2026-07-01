@@ -91,7 +91,7 @@ function IntakeDashboard() {
 
   const setSearch = (patch: Partial<typeof search>, resetPage = true) => {
     navigate({
-      search: (prev) => ({ ...prev, ...patch, ...(resetPage ? { page: 1 } : {}) }),
+      search: (prev: typeof search) => ({ ...prev, ...patch, ...(resetPage ? { page: 1 } : {}) }),
       replace: true,
     });
   };
