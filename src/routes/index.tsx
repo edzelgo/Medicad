@@ -292,10 +292,7 @@ function Index() {
         </div>
       </section>
 
-      {/* The Medicaid Success Advantage */}
-      <section id="services" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
-        {/* Portal sign-in cards */}
-      </section>
+      {/* Portal sign-in cards */}
       <section id="portals" className="max-w-7xl mx-auto px-6 lg:px-10 -mt-10 lg:-mt-14 relative z-10">
         <div className="grid md:grid-cols-3 gap-6">
           {[
@@ -327,7 +324,8 @@ function Index() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+      {/* The Medicaid Success Advantage */}
+      <section id="services" className="max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-xs uppercase tracking-[0.2em] text-foreground font-semibold">Our Solutions</span>
           <h2 className="mt-3 font-serif text-4xl lg:text-5xl text-primary">The Medicaid Success Advantage</h2>
