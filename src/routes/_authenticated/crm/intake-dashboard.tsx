@@ -1,10 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { listIntakeCases, type IntakeCase } from "@/lib/intake-dashboard.functions";
+import {
+  listIntakeCases,
+  updateIntakeCase,
+  WORKFLOW_OPTIONS,
+  STATUS_OPTIONS,
+  type IntakeCase,
+} from "@/lib/intake-dashboard.functions";
 import { Input } from "@/components/ui/input";
-import { Filter, ExternalLink, FileText } from "lucide-react";
+import { Filter, FileText, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/intake-dashboard")({
   component: IntakeDashboard,
@@ -20,10 +34,38 @@ const WORKFLOW_COLORS: Record<string, string> = {
 
 function IntakeDashboard() {
   const fn = useServerFn(listIntakeCases);
+  const updateFn = useServerFn(updateIntakeCase);
+  const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["intake-cases"], queryFn: () => fn() });
   const [query, setQuery] = useState("");
   const [agent, setAgent] = useState("All");
   const [workflowFilter, setWorkflowFilter] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (vars: {
+      id: string;
+      workflow?: string | null;
+      status?: string | null;
+      agent?: string | null;
+      follow_up_date?: string | null;
+    }) => updateFn({ data: vars }),
+    onMutate: (vars) => setPendingId(vars.id),
+    onSuccess: (row) => {
+      qc.setQueryData<IntakeCase[]>(["intake-cases"], (prev) =>
+        (prev ?? []).map((c) => (c.id === row.id ? row : c)),
+      );
+      toast.success("Case updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setPendingId(null),
+  });
+
+  const selected = useMemo(
+    () => data.find((c) => c.id === selectedId) ?? null,
+    [data, selectedId],
+  );
 
   const agents = useMemo(() => {
     const s = new Set<string>();
@@ -159,7 +201,11 @@ function IntakeDashboard() {
             </thead>
             <tbody>
               {filtered.map((c: IntakeCase) => (
-                <tr key={c.id} className="border-t border-border hover:bg-muted/30">
+                <tr
+                  key={c.id}
+                  className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                  onClick={() => setSelectedId(c.id)}
+                >
                   <td className="p-2 font-mono text-xs">{c.case_id}</td>
                   <td className="p-2 whitespace-nowrap">{c.date_received ?? "—"}</td>
                   <td className="p-2 font-medium">{c.last_name}, {c.first_name}</td>
@@ -169,15 +215,43 @@ function IntakeDashboard() {
                     </span>
                   </td>
                   <td className="p-2 whitespace-nowrap">{c.follow_up_date ?? "—"}</td>
-                  <td className="p-2">
-                    <span className={`inline-block text-[11px] px-2 py-0.5 rounded border ${WORKFLOW_COLORS[c.workflow ?? ""] ?? "bg-muted"}`}>
-                      {c.workflow ?? "—"}
-                    </span>
+                  <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={c.workflow ?? ""}
+                      disabled={pendingId === c.id}
+                      onChange={(e) =>
+                        mutation.mutate({ id: c.id, workflow: e.target.value || null })
+                      }
+                      className={`text-[11px] px-1.5 py-1 rounded border bg-transparent ${
+                        WORKFLOW_COLORS[c.workflow ?? ""] ?? "border-border"
+                      }`}
+                    >
+                      <option value="">—</option>
+                      {WORKFLOW_OPTIONS.map((w) => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
                   </td>
-                  <td className="p-2 text-xs font-semibold">{c.status ?? "—"}</td>
+                  <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={c.status ?? ""}
+                      disabled={pendingId === c.id}
+                      onChange={(e) =>
+                        mutation.mutate({ id: c.id, status: e.target.value || null })
+                      }
+                      className="text-xs px-1.5 py-1 rounded border border-border bg-transparent font-semibold"
+                    >
+                      <option value="">—</option>
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="p-2 text-xs">{c.agent ?? "—"}</td>
-                  <td className="p-2 text-right">
-                    <ExternalLink className="h-3.5 w-3.5 inline text-muted-foreground" />
+                  <td className="p-2 text-right w-6">
+                    {pendingId === c.id && (
+                      <Loader2 className="h-3.5 w-3.5 inline animate-spin text-muted-foreground" />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -192,6 +266,85 @@ function IntakeDashboard() {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelectedId(null)}>
+        <DialogContent className="max-w-2xl">
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {selected.last_name}, {selected.first_name}
+                </DialogTitle>
+                <DialogDescription className="font-mono text-xs">
+                  Case #{selected.case_id}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-2">
+                <Field label="Date Received" value={selected.date_received} />
+                <Field label="Phone" value={selected.phone} />
+                <Field label="Referral Source" value={selected.ref_source} />
+                <Field label="Marketer" value={selected.marketer} />
+                <Field label="Follow-up Date" value={selected.follow_up_date} />
+                <Field label="Follow Count" value={String(selected.follow_count)} />
+                <Field label="Notes Count" value={String(selected.notes_count)} />
+                <Field label="Track Count" value={String(selected.track_count)} />
+                <Field label="Workflow" value={selected.workflow} />
+                <Field label="Status" value={selected.status} />
+                <Field label="Status Date" value={selected.status_date} />
+                <Field label="Assigned Agent" value={selected.agent} />
+              </div>
+              <div className="mt-4 pt-4 border-t border-border space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Quick Update
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-xs space-y-1">
+                    <span className="text-muted-foreground">Workflow</span>
+                    <select
+                      value={selected.workflow ?? ""}
+                      disabled={pendingId === selected.id}
+                      onChange={(e) =>
+                        mutation.mutate({ id: selected.id, workflow: e.target.value || null })
+                      }
+                      className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                    >
+                      <option value="">—</option>
+                      {WORKFLOW_OPTIONS.map((w) => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs space-y-1">
+                    <span className="text-muted-foreground">Status</span>
+                    <select
+                      value={selected.status ?? ""}
+                      disabled={pendingId === selected.id}
+                      onChange={(e) =>
+                        mutation.mutate({ id: selected.id, status: e.target.value || null })
+                      }
+                      className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                    >
+                      <option value="">—</option>
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-sm mt-0.5">{value ?? "—"}</div>
     </div>
   );
 }
