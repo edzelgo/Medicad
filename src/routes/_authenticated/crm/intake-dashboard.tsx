@@ -44,8 +44,13 @@ function IntakeDashboard() {
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: (vars: Parameters<typeof updateFn>[0]["data"]) =>
-      updateFn({ data: vars }),
+    mutationFn: (vars: {
+      id: string;
+      workflow?: string | null;
+      status?: string | null;
+      agent?: string | null;
+      follow_up_date?: string | null;
+    }) => updateFn({ data: vars }),
     onMutate: (vars) => setPendingId(vars.id),
     onSuccess: (row) => {
       qc.setQueryData<IntakeCase[]>(["intake-cases"], (prev) =>
