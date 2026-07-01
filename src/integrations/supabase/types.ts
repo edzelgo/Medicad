@@ -130,6 +130,47 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_case_events: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "intake_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intake_cases: {
         Row: {
           agent: string | null

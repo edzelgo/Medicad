@@ -99,3 +99,29 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row as IntakeCase;
   });
+
+export type IntakeCaseEvent = {
+  id: string;
+  case_id: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+};
+
+export const listIntakeCaseEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ caseId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<IntakeCaseEvent[]> => {
+    await assertStaff(context);
+    const { data: rows, error } = await context.supabase
+      .from("intake_case_events")
+      .select("*")
+      .eq("case_id", data.caseId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as IntakeCaseEvent[];
+  });
