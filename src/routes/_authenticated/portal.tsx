@@ -26,8 +26,8 @@ export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "Your Portal — Medicaid Success" }] }),
   beforeLoad: async () => {
     const access = await getPortalAccess();
-    if (access.isAdmin) throw redirect({ to: "/admin/users" });
-    if (!access.allowed) {
+    // Admins can preview the client portal; only bounce users with no portal role at all.
+    if (!access.allowed && !access.isAdmin) {
       throw redirect({ to: "/auth", search: { role: "client" as const } });
     }
   },
