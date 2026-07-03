@@ -39,7 +39,7 @@ function LeadsList() {
       if (t !== 0) return t;
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");
     });
-  }, [data, q, stage]);
+  }, [data, q, stage, source]);
   const total = data?.length ?? 0;
   const resetFilters = () => { setQ(""); setStage(""); setSource(""); };
 
