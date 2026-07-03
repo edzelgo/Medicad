@@ -130,6 +130,7 @@ function PortalPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const auditFn = useServerFn(recordAuditEvent);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -212,7 +213,6 @@ function PortalPage() {
   const mergeFn = useServerFn(mergeUserDocuments);
   const signedFn = useServerFn(getSignedDownloadUrl);
   const analyzeFn = useServerFn(analyzeEligibility);
-  const auditFn = useServerFn(recordAuditEvent);
   const merge = useMutation({
     mutationFn: async () => mergeFn(),
     onSuccess: (res) => {
