@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import {
   Building2,
   HeartHandshake,
@@ -24,7 +23,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useStaffStatus } from "@/hooks/use-staff-status";
 import { SupportChatbot } from "@/components/support-chatbot";
@@ -185,6 +184,75 @@ const navItems = [
   { label: "Contact", href: "#contact" },
 ];
 
+function AuthEntryLink({
+  role,
+  className,
+  children,
+}: {
+  role: "agent" | "referral" | "client" | "staff";
+  className: string;
+  children: ReactNode;
+}) {
+  const router = useRouter();
+  const href = `/auth?role=${encodeURIComponent(role)}`;
+
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    const shouldUseNativeNavigation =
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.shiftKey;
+
+    if (shouldUseNativeNavigation) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    console.debug("[auth-entry] trusted click captured", {
+      role,
+      href,
+      isTrusted: event.nativeEvent.isTrusted,
+      defaultPrevented: event.defaultPrevented,
+      pointerType: (event.nativeEvent as PointerEvent).pointerType ?? "mouse",
+    });
+
+    window.setTimeout(() => {
+      const startPath = window.location.pathname + window.location.search;
+      console.debug("[auth-entry] router.navigate start", { from: startPath, to: href });
+
+      Promise.resolve(router.navigate({ to: "/auth", search: { role } }))
+        .then(() => {
+          console.debug("[auth-entry] router.navigate resolved", {
+            current: window.location.pathname + window.location.search,
+          });
+        })
+        .catch((error) => {
+          console.error("[auth-entry] router.navigate failed; falling back to native navigation", error);
+          window.location.assign(href);
+        });
+
+      window.setTimeout(() => {
+        const currentPath = window.location.pathname + window.location.search;
+        if (currentPath !== href && currentPath === startPath) {
+          console.warn("[auth-entry] navigation did not complete; falling back to native navigation", {
+            current: currentPath,
+            expected: href,
+          });
+          window.location.assign(href);
+        }
+      }, 350);
+    }, 0);
+  };
+
+  return (
+    <a href={href} className={className} onClickCapture={handleClick}>
+      {children}
+    </a>
+  );
+}
+
 function Index() {
   const { isStaff } = useStaffStatus();
   return (
@@ -216,23 +284,19 @@ function Index() {
               </Link>
             )}
             {!isStaff && (
-              <Link
-                to="/auth"
-                search={{ role: "staff" as const }}
-                preload={false}
+              <AuthEntryLink
+                role="staff"
                 className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
               >
                 Staff sign in
-              </Link>
+              </AuthEntryLink>
             )}
-            <Link
-              to="/auth"
-              search={{ role: "client" as const }}
-              preload={false}
+            <AuthEntryLink
+              role="client"
               className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-95 transition"
             >
               Sign in <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            </AuthEntryLink>
           </div>
         </div>
       </header>
@@ -306,20 +370,18 @@ function Index() {
               <h3 className="font-serif text-2xl text-primary">{p.title}</h3>
               <p className="mt-2 text-foreground text-base leading-relaxed flex-1">{p.desc}</p>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Link
-                  to="/auth"
-                  search={{ role: p.role }}
+                <AuthEntryLink
+                  role={p.role}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-95 transition"
                 >
                   {p.cta} <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/auth"
-                  search={{ role: p.role }}
+                </AuthEntryLink>
+                <AuthEntryLink
+                  role={p.role}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-border text-foreground hover:bg-muted transition"
                 >
                   Create account
-                </Link>
+                </AuthEntryLink>
               </div>
             </div>
           ))}
