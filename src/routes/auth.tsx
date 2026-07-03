@@ -1,5 +1,5 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -17,11 +17,6 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>) => ({
     role: (roleSchema.safeParse(s.role).success ? (s.role as PortalRole) : "client") as PortalRole,
   }),
-  beforeLoad: async () => {
-    if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/portal" });
-  },
   head: () => ({
     meta: [
       { title: "Sign in — Medicaid Success" },
@@ -43,6 +38,16 @@ function AuthPage() {
   const role = search.role as PortalRole;
   const navigate = useNavigate();
   const Icon = roleMeta[role].icon;
+
+  // Redirect already-authenticated users to their portal. Runs on the client only,
+  // so it doesn't stall route preload (mousedown → hanging getSession would drop clicks).
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) navigate({ to: "/portal" });
+    });
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
