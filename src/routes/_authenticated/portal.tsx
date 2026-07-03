@@ -73,7 +73,16 @@ function PortalPage() {
       ]);
       setProfile(p ?? { full_name: null });
       setRole((r?.role as string) ?? null);
+      // Audit session login once per portal mount (dedupe via sessionStorage).
+      try {
+        const key = `audit-login-${user.id}`;
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, String(Date.now()));
+          auditFn({ data: { action: "login", metadata: { role: r?.role ?? null } } }).catch(() => {});
+        }
+      } catch { /* sessionStorage may be blocked */ }
     })();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const docsQ = useQuery({
