@@ -705,7 +705,15 @@ function Index() {
       <footer className="border-t border-border bg-secondary/40">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground">
           <span>© {new Date().getFullYear()} Medicaid Success. All rights reserved.</span>
-          <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
+          <div className="flex items-center gap-6">
+            <Link to="/terms" className="hover:text-primary transition">
+              Terms & Conditions
+            </Link>
+            <Link to="/privacy" className="hover:text-primary transition">
+              Privacy Policy
+            </Link>
+            <span className="font-serif italic">Long-term care Medicaid planning, made simple.</span>
+          </div>
         </div>
       </footer>
       <SupportChatbot role="client" />
@@ -856,7 +864,11 @@ function ContactForm() {
         {submitting ? "Submitting..." : (<>Submit <ArrowRight className="h-4 w-4" /></>)}
       </button>
       <p className="text-xs text-foreground">
-        <a href="#" className="underline hover:text-primary">Privacy Policy & SMS Terms of Service</a>
+        By submitting, you agree to our{" "}
+        <Link to="/privacy" className="underline hover:text-primary">Privacy Policy</Link>
+        {" "}and{" "}
+        <Link to="/terms" className="underline hover:text-primary">Terms & Conditions</Link>
+        , including SMS Terms of Service.
       </p>
     </form>
   );
