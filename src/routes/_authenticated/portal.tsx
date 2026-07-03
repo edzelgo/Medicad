@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions";
 import { getPortalAccess } from "@/lib/portal-access.functions";
 import { analyzeEligibility } from "@/lib/eligibility.functions";
+import { recordAuditEvent } from "@/lib/audit.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +22,22 @@ import { REQUIRED_DOCUMENTS } from "@/lib/medicaid-requirements";
 
 const MAX_FILES = 200;
 const MAX_FILE_MB = 25;
+
+// Client-side allow-list mirrors the DB trigger. Rejects executables,
+// scripts, and SVG (XSS) before touching storage.
+const ALLOWED_MIME = new Set<string>([
+  "application/pdf",
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/heic", "image/heif",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "text/csv",
+]);
+const BLOCKED_EXT = new Set<string>([
+  "exe","bat","cmd","com","msi","sh","ps1","js","jse","vbs","vbe","jar","scr",
+  "apk","app","dll","so","dylib","php","py","rb","pl","html","htm","svg",
+]);
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "Your Portal — Medicaid Success" }] }),
