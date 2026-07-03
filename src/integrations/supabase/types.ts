@@ -49,6 +49,180 @@ export type Database = {
           },
         ]
       }
+      case_tracks: {
+        Row: {
+          agent: string | null
+          case_id: string
+          created_at: string
+          date_received: string | null
+          follow_count: number
+          follow_up_date: string | null
+          id: string
+          marketer: string | null
+          notes_count: number
+          ref_source: string | null
+          status: string | null
+          status_date: string | null
+          updated_at: string
+          workflow: string | null
+        }
+        Insert: {
+          agent?: string | null
+          case_id: string
+          created_at?: string
+          date_received?: string | null
+          follow_count?: number
+          follow_up_date?: string | null
+          id?: string
+          marketer?: string | null
+          notes_count?: number
+          ref_source?: string | null
+          status?: string | null
+          status_date?: string | null
+          updated_at?: string
+          workflow?: string | null
+        }
+        Update: {
+          agent?: string | null
+          case_id?: string
+          created_at?: string
+          date_received?: string | null
+          follow_count?: number
+          follow_up_date?: string | null
+          id?: string
+          marketer?: string | null
+          notes_count?: number
+          ref_source?: string | null
+          status?: string | null
+          status_date?: string | null
+          updated_at?: string
+          workflow?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_tracks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tracks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "intake_case_view"
+            referencedColumns: ["case_pk"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          address1: string | null
+          apartment: string | null
+          brochure_provided: string[] | null
+          case_number: string
+          case_type: string
+          city: string | null
+          county: string | null
+          created_at: string
+          dob: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          marital_status: string | null
+          meets_asset_requirements: string | null
+          middle_name: string | null
+          months_until_spend_down: number | null
+          phone_cell: string | null
+          phone_home: string | null
+          phone_other: string | null
+          responsible_party_email: string | null
+          responsible_party_name: string | null
+          responsible_party_phone: string | null
+          spouse_dob: string | null
+          spouse_first_name: string | null
+          spouse_last_name: string | null
+          spouse_ssn: string | null
+          ssn: string | null
+          state: string | null
+          transfer_amount: number | null
+          transferred_resources_60mo: boolean | null
+          updated_at: string
+          veteran_status: string | null
+          zip: string | null
+        }
+        Insert: {
+          address1?: string | null
+          apartment?: string | null
+          brochure_provided?: string[] | null
+          case_number: string
+          case_type?: string
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          dob?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          marital_status?: string | null
+          meets_asset_requirements?: string | null
+          middle_name?: string | null
+          months_until_spend_down?: number | null
+          phone_cell?: string | null
+          phone_home?: string | null
+          phone_other?: string | null
+          responsible_party_email?: string | null
+          responsible_party_name?: string | null
+          responsible_party_phone?: string | null
+          spouse_dob?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
+          spouse_ssn?: string | null
+          ssn?: string | null
+          state?: string | null
+          transfer_amount?: number | null
+          transferred_resources_60mo?: boolean | null
+          updated_at?: string
+          veteran_status?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address1?: string | null
+          apartment?: string | null
+          brochure_provided?: string[] | null
+          case_number?: string
+          case_type?: string
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          dob?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          marital_status?: string | null
+          meets_asset_requirements?: string | null
+          middle_name?: string | null
+          months_until_spend_down?: number | null
+          phone_cell?: string | null
+          phone_home?: string | null
+          phone_other?: string | null
+          responsible_party_email?: string | null
+          responsible_party_name?: string | null
+          responsible_party_phone?: string | null
+          spouse_dob?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
+          spouse_ssn?: string | null
+          ssn?: string | null
+          state?: string | null
+          transfer_amount?: number | null
+          transferred_resources_60mo?: boolean | null
+          updated_at?: string
+          veteran_status?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       check_ins: {
         Row: {
           body: string | null
@@ -166,73 +340,17 @@ export type Database = {
             foreignKeyName: "intake_case_events_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
-            referencedRelation: "intake_cases"
+            referencedRelation: "case_tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "intake_case_view"
             referencedColumns: ["id"]
           },
         ]
-      }
-      intake_cases: {
-        Row: {
-          agent: string | null
-          case_id: string
-          created_at: string
-          date_received: string | null
-          first_name: string | null
-          follow_count: number
-          follow_up_date: string | null
-          id: string
-          last_name: string | null
-          marketer: string | null
-          notes_count: number
-          phone: string | null
-          ref_source: string | null
-          status: string | null
-          status_date: string | null
-          track_count: number
-          updated_at: string
-          workflow: string | null
-        }
-        Insert: {
-          agent?: string | null
-          case_id: string
-          created_at?: string
-          date_received?: string | null
-          first_name?: string | null
-          follow_count?: number
-          follow_up_date?: string | null
-          id?: string
-          last_name?: string | null
-          marketer?: string | null
-          notes_count?: number
-          phone?: string | null
-          ref_source?: string | null
-          status?: string | null
-          status_date?: string | null
-          track_count?: number
-          updated_at?: string
-          workflow?: string | null
-        }
-        Update: {
-          agent?: string | null
-          case_id?: string
-          created_at?: string
-          date_received?: string | null
-          first_name?: string | null
-          follow_count?: number
-          follow_up_date?: string | null
-          id?: string
-          last_name?: string | null
-          marketer?: string | null
-          notes_count?: number
-          phone?: string | null
-          ref_source?: string | null
-          status?: string | null
-          status_date?: string | null
-          track_count?: number
-          updated_at?: string
-          workflow?: string | null
-        }
-        Relationships: []
       }
       leads: {
         Row: {
@@ -470,7 +588,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      intake_case_view: {
+        Row: {
+          agent: string | null
+          case_id: string | null
+          case_pk: string | null
+          case_type: string | null
+          date_received: string | null
+          first_name: string | null
+          follow_count: number | null
+          follow_up_date: string | null
+          id: string | null
+          last_name: string | null
+          marketer: string | null
+          notes_count: number | null
+          phone: string | null
+          ref_source: string | null
+          status: string | null
+          status_date: string | null
+          track_count: number | null
+          workflow: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_set_user_role: {
@@ -506,7 +646,7 @@ export type Database = {
         | "approved"
         | "denied"
         | "closed"
-      portal_role: "agent" | "referral" | "client" | "admin"
+      portal_role: "agent" | "referral" | "client" | "admin" | "marketer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -652,7 +792,7 @@ export const Constants = {
         "denied",
         "closed",
       ],
-      portal_role: ["agent", "referral", "client", "admin"],
+      portal_role: ["agent", "referral", "client", "admin", "marketer"],
     },
   },
 } as const
