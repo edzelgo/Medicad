@@ -39,6 +39,16 @@ function AuthPage() {
   const navigate = useNavigate();
   const Icon = roleMeta[role].icon;
 
+  // Redirect already-authenticated users to their portal. Runs on the client only,
+  // so it doesn't stall route preload (mousedown → hanging getSession would drop clicks).
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) navigate({ to: "/portal" });
+    });
+    return () => { cancelled = true; };
+  }, [navigate]);
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       {/* Left visual */}
