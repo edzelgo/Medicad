@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_actions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          notes: string | null
+          owner: string
+          role: Database["public"]["Enums"]["portal_role"]
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          owner?: string
+          role: Database["public"]["Enums"]["portal_role"]
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          owner?: string
+          role?: Database["public"]["Enums"]["portal_role"]
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           content: string
