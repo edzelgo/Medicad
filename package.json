@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "security:check": "node scripts/check-raw-db-errors.mjs",
+    "predeploy": "npm run security:check"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
