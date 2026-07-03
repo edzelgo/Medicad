@@ -1,5 +1,62 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { computeRequirementProgress } from "@/lib/medicaid-requirements";
+
+function escapeHtml(s: string) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+async function sendResend(to: string[], subject: string, html: string) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || to.length === 0) return;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        from: "Medicaid Success <onboarding@resend.dev>",
+        to, subject, html,
+      }),
+    });
+  } catch (err) {
+    console.error("Resend send failed", err);
+  }
+}
+
+function buildEmailHtml(opts: {
+  heading: string; intro: string; verdict: string; report: string;
+  missing: string[]; satisfied: string[]; portalUrl: string;
+}) {
+  const NAVY = "#0b3d91";
+  const list = (items: string[], done: boolean) => items.length === 0 ? "" :
+    `<ul style="margin:6px 0 14px 20px;padding:0;color:#0f172a;font-size:14px;line-height:1.6">
+      ${items.map(i => `<li>${done ? "✅ " : "⚠️ "}${escapeHtml(i)}</li>`).join("")}
+    </ul>`;
+  return `<!doctype html><html><body style="margin:0;background:#f4f7fc;font-family:Arial,sans-serif;color:#0f172a">
+    <div style="max-width:620px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+      <div style="background:${NAVY};color:#fff;padding:22px 28px">
+        <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">Medicaid Success</div>
+        <div style="font-size:20px;font-weight:700;margin-top:4px">${escapeHtml(opts.heading)}</div>
+      </div>
+      <div style="padding:26px 28px;font-size:15px;line-height:1.6">
+        <p style="margin:0 0 12px">${escapeHtml(opts.intro)}</p>
+        <div style="background:#f1f5fb;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin:14px 0">
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748b">AI Verdict</div>
+          <div style="font-size:17px;font-weight:700;color:${NAVY};margin-top:4px">${escapeHtml(opts.verdict)}</div>
+        </div>
+        ${opts.missing.length ? `<p style="margin:16px 0 4px;font-weight:600;color:${NAVY}">Still missing — please upload:</p>${list(opts.missing, false)}` : ""}
+        ${opts.satisfied.length ? `<p style="margin:8px 0 4px;font-weight:600;color:#166534">Received:</p>${list(opts.satisfied, true)}` : ""}
+        <div style="margin:18px 0 6px;font-weight:600;color:${NAVY}">Screening report</div>
+        <div style="white-space:pre-wrap;font-size:14px;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px">${escapeHtml(opts.report)}</div>
+        <div style="margin:22px 0 6px">
+          <a href="${opts.portalUrl}" style="display:inline-block;background:${NAVY};color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600">Open my portal</a>
+        </div>
+        <p style="margin:18px 0 0;color:#64748b;font-size:13px">This is an automated screening estimate. Your specialist will confirm the final eligibility decision.</p>
+      </div>
+    </div></body></html>`;
+}
 
 type Part =
   | { type: "text"; text: string }
@@ -120,6 +177,74 @@ export const analyzeEligibility = createServerFn({ method: "POST" })
       body: reply.slice(0, 1000),
       status: verdict === "eligible" ? "success" : verdict === "ineligible" ? "warning" : "info",
     });
+
+    // Fire-and-forget email notifications to the user and all admins.
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const userEmail = authUser?.user?.email ?? null;
+      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      const displayName = profile?.full_name?.trim() || userEmail || "Applicant";
+
+      const filenames = docs.map((d) => d.name);
+      const progress = computeRequirementProgress(filenames);
+
+      const verdictLabel =
+        verdict === "eligible" ? "✅ Likely Eligible — application ready"
+          : verdict === "ineligible" ? "❌ Likely Ineligible — needs review"
+          : "⚠️ More Information Needed";
+
+      const portalUrl = "https://medicaid-sucess-onboarding.lovable.app/portal";
+      const complete = verdict === "eligible" && progress.missing.length === 0;
+
+      // --- User email ---
+      if (userEmail) {
+        const heading = complete
+          ? "Your application is complete"
+          : "Action needed — your application isn't finished yet";
+        const intro = complete
+          ? `Hi ${displayName.split(" ")[0]}, great news — our AI screening reviewed your uploads and everything looks in order. Your specialist will take it from here.`
+          : `Hi ${displayName.split(" ")[0]}, we ran an AI screening on your uploaded documents. Your application is not complete yet — please upload the missing items below so we can move forward.`;
+        await sendResend(
+          [userEmail],
+          complete
+            ? "✅ Your Medicaid application is complete"
+            : "Reminder: your Medicaid application is missing documents",
+          buildEmailHtml({
+            heading, intro, verdict: verdictLabel, report: reply,
+            missing: progress.missing, satisfied: progress.satisfiedLabels, portalUrl,
+          }),
+        );
+      }
+
+      // --- Admin email(s) ---
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: adminRoles } = await supabaseAdmin
+          .from("user_roles").select("user_id").eq("role", "admin").eq("status", "approved");
+        const adminEmails: string[] = [];
+        for (const r of adminRoles ?? []) {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(r.user_id);
+          if (u?.user?.email) adminEmails.push(u.user.email);
+        }
+        if (adminEmails.length) {
+          await sendResend(
+            adminEmails,
+            `[Medicaid Success] ${verdictLabel} — ${displayName}`,
+            buildEmailHtml({
+              heading: complete ? "Client application complete" : "Client application incomplete",
+              intro: `${displayName} (${userEmail ?? "no email"}) just ran an AI eligibility screening. ${complete ? "All required documents are on file." : "The applicant is still missing required documents."}`,
+              verdict: verdictLabel, report: reply,
+              missing: progress.missing, satisfied: progress.satisfiedLabels,
+              portalUrl: "https://medicaid-sucess-onboarding.lovable.app/crm",
+            }),
+          );
+        }
+      } catch (err) {
+        console.error("Admin notify failed", err);
+      }
+    } catch (err) {
+      console.error("Eligibility notification failed", err);
+    }
 
     return { report: reply, verdict, reviewed, totalDocs: docs.length };
   });
