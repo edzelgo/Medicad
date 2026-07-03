@@ -27,6 +27,7 @@ import { Route as AuthenticatedCrmIntakeDashboardRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated/admin/pipeline'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedCrmLeadsNewRouteImport } from './routes/_authenticated/crm/leads.new'
 import { Route as AuthenticatedCrmLeadsIdRouteImport } from './routes/_authenticated/crm/leads.$id'
 import { Route as AuthenticatedCrmCasesNewRouteImport } from './routes/_authenticated/crm/cases.new'
@@ -126,6 +127,11 @@ const AuthenticatedAdminDocumentsRoute =
     path: '/documents',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedCrmLeadsNewRoute =
   AuthenticatedCrmLeadsNewRouteImport.update({
     id: '/new',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/crm': typeof AuthenticatedCrmRouteRouteWithChildren
   '/portal': typeof AuthenticatedPortalRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/portal': typeof AuthenticatedPortalRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/crm': typeof AuthenticatedCrmRouteRouteWithChildren
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/crm'
     | '/portal'
+    | '/admin/audit'
     | '/admin/documents'
     | '/admin/pipeline'
     | '/admin/users'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/portal'
+    | '/admin/audit'
     | '/admin/documents'
     | '/admin/pipeline'
     | '/admin/users'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/crm'
     | '/_authenticated/portal'
+    | '/_authenticated/admin/audit'
     | '/_authenticated/admin/documents'
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/users'
@@ -424,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/crm/leads/new': {
       id: '/_authenticated/crm/leads/new'
       path: '/new'
@@ -456,6 +475,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -464,6 +484,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
+    AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
     AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
