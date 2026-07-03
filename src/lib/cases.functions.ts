@@ -118,7 +118,7 @@ export const updateCaseDemographics = createServerFn({ method: "POST" })
     await assertStaff(context);
     const patch = clean(data.patch);
     const { error } = await context.supabase.from("cases").update(patch as never).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 
@@ -144,7 +144,7 @@ export const addCaseTrack = createServerFn({ method: "POST" })
     payload.status_date = new Date().toISOString().slice(0, 10);
     const { data: row, error } = await context.supabase
       .from("case_tracks").insert(payload as never).select("id").single();
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { track_id: row.id };
   });
 
@@ -155,6 +155,6 @@ export const deleteCaseTrack = createServerFn({ method: "POST" })
     const { isAdmin } = await assertStaff(context);
     if (!isAdmin) throw new Error("Forbidden");
     const { error } = await context.supabase.from("case_tracks").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });

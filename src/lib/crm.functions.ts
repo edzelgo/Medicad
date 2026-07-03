@@ -62,7 +62,7 @@ export const listLeads = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return data ?? [];
   });
 
@@ -73,7 +73,7 @@ export const getLead = createServerFn({ method: "GET" })
     await assertStaff(context);
     const { data: lead, error } = await context.supabase
       .from("leads").select("*").eq("id", data.id).maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     if (!lead) throw new Error("Lead not found");
     const { data: activities } = await context.supabase
       .from("activities").select("*").eq("lead_id", data.id).order("created_at", { ascending: false });
@@ -92,7 +92,7 @@ export const createLead = createServerFn({ method: "POST" })
     payload.source = (payload.source as string | undefined) ?? "manual";
     const { data: row, error } = await context.supabase
       .from("leads").insert(payload as never).select().single();
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     await context.supabase.from("activities").insert({
       lead_id: row.id, type: "intake", content: "Intake submitted.", created_by: context.userId,
     });
@@ -115,7 +115,7 @@ export const updateLead = createServerFn({ method: "POST" })
     }
     const { error } = await context.supabase
       .from("leads").update(patch as never).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     if (data.patch.stage && prevStage !== data.patch.stage) {
       await context.supabase.from("activities").insert({
         lead_id: data.id,
@@ -133,7 +133,7 @@ export const deleteLead = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const { error } = await context.supabase.from("leads").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 
@@ -152,7 +152,7 @@ export const addActivity = createServerFn({ method: "POST" })
       type: data.type ?? "note",
       created_by: context.userId,
     });
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 
@@ -173,7 +173,7 @@ export const listTeam = createServerFn({ method: "GET" })
     await assertStaff(context);
     const { data: roles, error } = await context.supabase
       .from("user_roles").select("user_id, role, status");
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
     const { data: profiles } = await context.supabase
       .from("profiles").select("id, full_name").in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
@@ -201,7 +201,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("user_roles").upsert({
       user_id: data.user_id, role: data.role, status: data.status ?? "approved",
     }, { onConflict: "user_id,role" });
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 
@@ -216,7 +216,7 @@ export const revokeUserRole = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id).eq("role", data.role);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 

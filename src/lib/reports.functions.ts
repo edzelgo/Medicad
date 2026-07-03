@@ -30,7 +30,7 @@ export const reportReferrals = createServerFn({ method: "GET" })
     if (data.marketer) builder = builder.eq("marketer", data.marketer);
     if (data.caseType) builder = builder.eq("case_type", data.caseType);
     const { data: rows, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
 
     const byMarketer: Record<string, number> = {};
     for (const r of rows ?? []) {
@@ -56,7 +56,7 @@ export const reportOnService = createServerFn({ method: "GET" })
     if (data.dateTo) builder = builder.lte("date_received", data.dateTo);
     if (data.caseType) builder = builder.eq("case_type", data.caseType);
     const { data: rows, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { rows: rows ?? [], total: rows?.length ?? 0 };
   });
 
@@ -72,7 +72,7 @@ export const reportActiveTracks = createServerFn({ method: "GET" })
       .not("status", "in", `(${TERMINAL_STATUSES.map((s) => `"${s}"`).join(",")})`);
     if (data.caseType) builder = builder.eq("case_type", data.caseType);
     const { data: rows, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const stats: Record<string, Record<string, number>> = {};
     for (const r of rows ?? []) {
       const wf = r.workflow || "Unassigned";
@@ -99,7 +99,7 @@ export const reportFollowUp = createServerFn({ method: "GET" })
     if (data.dateTo) builder = builder.lte("follow_up_date", data.dateTo);
     if (data.caseType) builder = builder.eq("case_type", data.caseType);
     const { data: rows, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const today = new Date().toISOString().slice(0, 10);
     const withOverdue = (rows ?? []).map((r) => ({ ...r, overdue: !!r.follow_up_date && r.follow_up_date < today }));
     return { rows: withOverdue, total: withOverdue.length, overdueCount: withOverdue.filter((r) => r.overdue).length };
@@ -121,7 +121,7 @@ export const reportActivityLog = createServerFn({ method: "GET" })
     if (data.dateFrom) builder = builder.gte("created_at", data.dateFrom);
     if (data.dateTo) builder = builder.lte("created_at", data.dateTo);
     const { data: events, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
 
     const trackIds = Array.from(new Set((events ?? []).map((e) => e.case_id)));
     const { data: rows } = trackIds.length

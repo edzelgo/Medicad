@@ -203,7 +203,7 @@ export const adminUpdateApplicationStatus = createServerFn({ method: "POST" })
         application_status_updated_at: new Date().toISOString(),
       })
       .eq("id", data.profile_id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });
 
@@ -222,6 +222,6 @@ export const adminAssignAgent = createServerFn({ method: "POST" })
       .from("profiles")
       .update({ assigned_agent_id: data.agent_id })
       .eq("id", data.profile_id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };
   });

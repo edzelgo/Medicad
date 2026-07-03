@@ -11,7 +11,7 @@ export const getPortalAccess = createServerFn({ method: "GET" })
       .from("user_roles")
       .select("role, status")
       .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
 
     const roles = (data ?? []) as { role: string; status: string }[];
     const isAdmin = roles.some((r) => r.role === "admin" && r.status === "approved");
