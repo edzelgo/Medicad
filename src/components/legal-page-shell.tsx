@@ -18,7 +18,7 @@ export function LegalPageShell({
               <FileCheck className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-serif text-lg tracking-tight leading-tight text-foreground">
-              Medicaid
+              Medicaid<br className="hidden sm:inline" />
               <span className="text-primary">Success</span>
             </span>
           </Link>
