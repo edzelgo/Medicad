@@ -92,6 +92,15 @@ export const mergeUserDocuments = createServerFn({ method: "POST" })
       status: "success",
     });
 
+    // Server-authoritative audit trail entry (client also logs, but we
+    // don't trust the client to be honest).
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      action: "packet.compress",
+      resource: outPath,
+      metadata: { count: docs.length, source: "server" },
+    });
+
     return { url: signed.signedUrl, count: docs.length, path: outPath };
   });
 
@@ -107,5 +116,11 @@ export const getSignedDownloadUrl = createServerFn({ method: "POST" })
       .from("documents")
       .createSignedUrl(data.path, 60 * 5);
     if (error || !signed) { if (error) console.error("[db]", error.message); throw new Error("Could not create signed URL."); }
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      action: "document.download",
+      resource: data.path,
+      metadata: { source: "server" },
+    });
     return { url: signed.signedUrl };
   });
