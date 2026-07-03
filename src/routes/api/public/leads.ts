@@ -84,8 +84,8 @@ export const Route = createFileRoute("/api/public/leads")({
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Bad request";
-          return new Response(JSON.stringify({ ok: false, error: msg }), {
+          console.error("[public/leads]", err);
+          return new Response(JSON.stringify({ ok: false, error: "Invalid request. Please check your input." }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
