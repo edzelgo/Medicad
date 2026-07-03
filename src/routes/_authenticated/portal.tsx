@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
   CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList, Brain, AlertTriangle, XCircle,
+  Building2, Loader2, Ban, HourglassIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { REQUIRED_DOCUMENTS } from "@/lib/medicaid-requirements";
@@ -54,6 +55,30 @@ export const Route = createFileRoute("/_authenticated/portal")({
 type Doc = { id: string; name: string; storage_path: string; mime_type: string | null; size_bytes: number | null; created_at: string };
 type CheckIn = { id: string; title: string; body: string | null; status: string; created_at: string };
 type Task = { id: string; title: string; description: string | null; status: string; sort_order: number; completed_at: string | null };
+type AccountAction = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "pending" | "in_progress" | "waiting_on_client" | "complete" | "blocked";
+  owner: string;
+  sort_order: number;
+  due_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
+const ACTION_STATUSES: AccountAction["status"][] = [
+  "pending", "in_progress", "waiting_on_client", "complete", "blocked",
+];
+
+const ACTION_STATUS_META: Record<AccountAction["status"], { label: string; className: string; Icon: typeof CheckCircle2 }> = {
+  pending:             { label: "Pending",             className: "bg-muted text-foreground",                        Icon: Circle },
+  in_progress:         { label: "In progress",         className: "bg-primary/10 text-primary",                      Icon: Loader2 },
+  waiting_on_client:   { label: "Waiting on you",      className: "bg-amber-100 text-amber-800",                     Icon: HourglassIcon },
+  complete:            { label: "Complete",            className: "bg-accent/15 text-accent-foreground border border-accent/30", Icon: CheckCircle2 },
+  blocked:             { label: "Blocked",             className: "bg-destructive/10 text-destructive",              Icon: Ban },
+};
 
 function PortalPage() {
   const navigate = useNavigate();
@@ -121,9 +146,41 @@ function PortalPage() {
     },
   });
 
+  const actionsQ = useQuery({
+    queryKey: ["account_actions"],
+    queryFn: async (): Promise<AccountAction[]> => {
+      const { data, error } = await supabase
+        .from("account_actions")
+        .select("id, title, description, status, owner, sort_order, due_at, completed_at, notes, updated_at")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AccountAction[];
+    },
+  });
+
+  const isAdminQ = useQuery({
+    queryKey: ["is-admin-self"],
+    queryFn: async (): Promise<boolean> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role,status")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .eq("status", "approved")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+  const isAdmin = !!isAdminQ.data;
+
   const docs = docsQ.data ?? [];
   const checkIns = checkInsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
+  const actions = actionsQ.data ?? [];
+  const actionsDone = actions.filter((a) => a.status === "complete").length;
+  const actionsPct = actions.length ? Math.round((actionsDone / actions.length) * 100) : 0;
   const completedTasks = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
@@ -252,6 +309,29 @@ function PortalPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const updateActionStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AccountAction["status"] }) => {
+      const { error } = await supabase
+        .from("account_actions")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["account_actions"] });
+      const prev = qc.getQueryData<AccountAction[]>(["account_actions"]);
+      if (prev) {
+        qc.setQueryData<AccountAction[]>(["account_actions"], prev.map((a) => a.id === id ? { ...a, status } : a));
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["account_actions"], ctx.prev);
+      toast.error("Couldn't update — you may not have permission.");
+    },
+    onSuccess: () => { toast.success("Action updated."); qc.invalidateQueries({ queryKey: ["account_actions"] }); },
   });
 
   async function download(d: Doc) {
