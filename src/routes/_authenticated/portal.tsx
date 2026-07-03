@@ -203,6 +203,7 @@ function PortalPage() {
       await supabase.storage.from("documents").remove([d.storage_path]);
       const { error } = await supabase.from("documents").delete().eq("id", d.id);
       if (error) throw error;
+      auditFn({ data: { action: "document.delete", metadata: { name: d.name }, resource: d.storage_path } }).catch(() => {});
     },
     onSuccess: () => { toast.success("File removed."); qc.invalidateQueries({ queryKey: ["documents"] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -211,10 +212,12 @@ function PortalPage() {
   const mergeFn = useServerFn(mergeUserDocuments);
   const signedFn = useServerFn(getSignedDownloadUrl);
   const analyzeFn = useServerFn(analyzeEligibility);
+  const auditFn = useServerFn(recordAuditEvent);
   const merge = useMutation({
     mutationFn: async () => mergeFn(),
     onSuccess: (res) => {
       toast.success(`Packet ready — ${res.count} file${res.count === 1 ? "" : "s"} merged.`);
+      auditFn({ data: { action: "packet.compress", metadata: { count: res.count }, resource: res.path } }).catch(() => {});
       window.open(res.url, "_blank");
       qc.invalidateQueries({ queryKey: ["check_ins"] });
     },
@@ -245,6 +248,7 @@ function PortalPage() {
   async function download(d: Doc) {
     try {
       const res = await signedFn({ data: { path: d.storage_path } });
+      auditFn({ data: { action: "document.download", metadata: { name: d.name }, resource: d.storage_path } }).catch(() => {});
       window.open(res.url, "_blank");
     } catch (e) {
       toast.error((e as Error).message);
@@ -252,6 +256,7 @@ function PortalPage() {
   }
 
   async function signOut() {
+    await auditFn({ data: { action: "logout" } }).catch(() => {});
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
