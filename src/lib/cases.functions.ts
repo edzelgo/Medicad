@@ -67,7 +67,7 @@ export const createCase = createServerFn({ method: "POST" })
     casePayload.case_number = genCaseNumber();
     const { data: caseRow, error: caseErr } = await context.supabase
       .from("cases").insert(casePayload as never).select("id, case_number").single();
-    if (caseErr) throw new Error(caseErr.message);
+    if (caseErr) { console.error("[db]", caseErr.message); throw new Error("Operation failed. Please try again."); }
 
     const trackPayload = clean({ ref_source, marketer, date_received });
     trackPayload.case_id = caseRow.id;
@@ -76,7 +76,7 @@ export const createCase = createServerFn({ method: "POST" })
     trackPayload.status_date = new Date().toISOString().slice(0, 10);
     const { data: trackRow, error: trackErr } = await context.supabase
       .from("case_tracks").insert(trackPayload as never).select("id").single();
-    if (trackErr) throw new Error(trackErr.message);
+    if (trackErr) { console.error("[db]", trackErr.message); throw new Error("Operation failed. Please try again."); }
 
     return { case_id: caseRow.id, case_number: caseRow.case_number, track_id: trackRow.id };
   });
@@ -88,13 +88,13 @@ export const getCaseDetail = createServerFn({ method: "GET" })
     await assertStaff(context);
     const { data: caseRow, error: caseErr } = await context.supabase
       .from("cases").select("*").eq("id", data.id).maybeSingle();
-    if (caseErr) throw new Error(caseErr.message);
+    if (caseErr) { console.error("[db]", caseErr.message); throw new Error("Operation failed. Please try again."); }
     if (!caseRow) throw new Error("Case not found");
 
     const { data: tracks, error: tracksErr } = await context.supabase
       .from("case_tracks").select("*").eq("case_id", data.id)
       .order("created_at", { ascending: true });
-    if (tracksErr) throw new Error(tracksErr.message);
+    if (tracksErr) { console.error("[db]", tracksErr.message); throw new Error("Operation failed. Please try again."); }
 
     const trackIds = (tracks ?? []).map((t) => t.id);
     const { data: events, error: eventsErr } = trackIds.length
@@ -104,7 +104,7 @@ export const getCaseDetail = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .limit(200)
       : { data: [], error: null };
-    if (eventsErr) throw new Error(eventsErr.message);
+    if (eventsErr) { console.error("[db]", eventsErr.message); throw new Error("Operation failed. Please try again."); }
 
     return { case: caseRow, tracks: tracks ?? [], events: events ?? [] };
   });

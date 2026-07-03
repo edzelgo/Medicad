@@ -86,7 +86,7 @@ export const listIntakeCases = createServerFn({ method: "GET" })
     let aggBuilder = context.supabase.from("intake_case_view").select("workflow,status,agent");
     if (data.caseType) aggBuilder = aggBuilder.eq("case_type", data.caseType);
     const { data: aggRows, error: aggErr } = await aggBuilder;
-    if (aggErr) throw new Error(aggErr.message);
+    if (aggErr) { console.error("[db]", aggErr.message); throw new Error("Operation failed. Please try again."); }
 
     const agentsSet = new Set<string>();
     const workflowStats: Record<string, Record<string, number>> = {};
@@ -167,7 +167,7 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
       .select("*")
       .eq("id", data.id)
       .single();
-    if (viewErr) throw new Error(viewErr.message);
+    if (viewErr) { console.error("[db]", viewErr.message); throw new Error("Operation failed. Please try again."); }
     return row as IntakeCase;
   });
 
@@ -259,7 +259,7 @@ export const exportIntakeCases = createServerFn({ method: "POST" })
       .select("case_id,field,old_value,new_value,actor_email,created_at")
       .in("case_id", ids)
       .order("created_at", { ascending: false });
-    if (evErr) throw new Error(evErr.message);
+    if (evErr) { console.error("[db]", evErr.message); throw new Error("Operation failed. Please try again."); }
 
     const latest = new Map<string, any>();
     for (const ev of events ?? []) {

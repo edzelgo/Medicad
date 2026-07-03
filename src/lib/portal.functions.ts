@@ -14,7 +14,7 @@ export const mergeUserDocuments = createServerFn({ method: "POST" })
       .select("id, name, storage_path, mime_type")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
-    if (listErr) throw new Error(listErr.message);
+    if (listErr) { console.error("[db]", listErr.message); throw new Error("Operation failed. Please try again."); }
     if (!docs || docs.length === 0) throw new Error("No documents to merge yet.");
 
     const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
@@ -78,12 +78,12 @@ export const mergeUserDocuments = createServerFn({ method: "POST" })
     const { error: upErr } = await supabase.storage
       .from("documents")
       .upload(outPath, out, { contentType: "application/pdf", upsert: true });
-    if (upErr) throw new Error(upErr.message);
+    if (upErr) { console.error("[db]", upErr.message); throw new Error("Operation failed. Please try again."); }
 
     const { data: signed, error: signErr } = await supabase.storage
       .from("documents")
       .createSignedUrl(outPath, 60 * 10);
-    if (signErr || !signed) throw new Error(signErr?.message ?? "Could not create download link");
+    if (signErr || !signed) { if (signErr) console.error("[db]", signErr.message); throw new Error("Could not create download link."); }
 
     await supabase.from("check_ins").insert({
       user_id: userId,
@@ -106,6 +106,6 @@ export const getSignedDownloadUrl = createServerFn({ method: "POST" })
     const { data: signed, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(data.path, 60 * 5);
-    if (error || !signed) throw new Error(error?.message ?? "Could not create signed URL");
+    if (error || !signed) { if (error) console.error("[db]", error.message); throw new Error("Could not create signed URL."); }
     return { url: signed.signedUrl };
   });
