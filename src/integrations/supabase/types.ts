@@ -506,7 +506,7 @@ export type Database = {
         | "approved"
         | "denied"
         | "closed"
-      portal_role: "agent" | "referral" | "client" | "admin"
+      portal_role: "agent" | "referral" | "client" | "admin" | "marketer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -652,7 +652,7 @@ export const Constants = {
         "denied",
         "closed",
       ],
-      portal_role: ["agent", "referral", "client", "admin"],
+      portal_role: ["agent", "referral", "client", "admin", "marketer"],
     },
   },
 } as const
