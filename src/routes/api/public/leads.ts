@@ -78,7 +78,7 @@ export const Route = createFileRoute("/api/public/leads")({
             source: data.source ?? "medicaidsuccess.com",
           };
           const { data: row, error } = await supabaseAdmin.from("leads").insert(insertPayload).select("id").single();
-          if (error) throw error;
+          if (error) throw error; // audit-ok:raw-error — caught below and converted to a generic 400 response
           return new Response(JSON.stringify({ ok: true, id: row.id }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },

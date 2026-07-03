@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mergeUserDocuments, getSignedDownloadUrl } from "@/lib/portal.functions";
 import { getPortalAccess } from "@/lib/portal-access.functions";
 import { analyzeEligibility } from "@/lib/eligibility.functions";
+import { recordAuditEvent } from "@/lib/audit.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +22,22 @@ import { REQUIRED_DOCUMENTS } from "@/lib/medicaid-requirements";
 
 const MAX_FILES = 200;
 const MAX_FILE_MB = 25;
+
+// Client-side allow-list mirrors the DB trigger. Rejects executables,
+// scripts, and SVG (XSS) before touching storage.
+const ALLOWED_MIME = new Set<string>([
+  "application/pdf",
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/heic", "image/heif",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "text/csv",
+]);
+const BLOCKED_EXT = new Set<string>([
+  "exe","bat","cmd","com","msi","sh","ps1","js","jse","vbs","vbe","jar","scr",
+  "apk","app","dll","so","dylib","php","py","rb","pl","html","htm","svg",
+]);
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "Your Portal — Medicaid Success" }] }),
@@ -56,7 +73,16 @@ function PortalPage() {
       ]);
       setProfile(p ?? { full_name: null });
       setRole((r?.role as string) ?? null);
+      // Audit session login once per portal mount (dedupe via sessionStorage).
+      try {
+        const key = `audit-login-${user.id}`;
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, String(Date.now()));
+          auditFn({ data: { action: "login", metadata: { role: r?.role ?? null } } }).catch(() => {});
+        }
+      } catch { /* sessionStorage may be blocked */ }
     })();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const docsQ = useQuery({
@@ -113,6 +139,7 @@ function PortalPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const auditFn = useServerFn(recordAuditEvent);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -129,6 +156,23 @@ function PortalPage() {
     let success = 0;
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
+      const ext = (f.name.split(".").pop() ?? "").toLowerCase();
+      const mime = (f.type || "").toLowerCase();
+      if (!f.name || f.name.length > 255 || /[\\/]|\.\./.test(f.name)) {
+        toast.error(`${f.name || "(unnamed)"} — invalid file name`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
+      if (BLOCKED_EXT.has(ext) || (mime && !ALLOWED_MIME.has(mime))) {
+        toast.error(`${f.name} — file type not allowed`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
+      if (f.size <= 0) {
+        toast.error(`${f.name} is empty`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
         toast.error(`${f.name} exceeds ${MAX_FILE_MB}MB`);
         setUploadProgress({ done: i + 1, total: files.length });
@@ -144,8 +188,14 @@ function PortalPage() {
       const { error: insErr } = await supabase.from("documents").insert({
         user_id: user.id, name: f.name, storage_path: path, mime_type: f.type || null, size_bytes: f.size,
       });
-      if (insErr) toast.error(`${f.name}: ${insErr.message}`);
-      else success++;
+      if (insErr) {
+        toast.error(`${f.name}: rejected by security check`);
+        console.error("[upload]", insErr.message);
+        await supabase.storage.from("documents").remove([path]);
+      } else {
+        success++;
+        auditFn({ data: { action: "document.upload", metadata: { name: f.name, size: f.size, mime: f.type || null }, resource: path } }).catch(() => {});
+      }
       setUploadProgress({ done: i + 1, total: files.length });
     }
     setUploading(false);
@@ -163,6 +213,7 @@ function PortalPage() {
       await supabase.storage.from("documents").remove([d.storage_path]);
       const { error } = await supabase.from("documents").delete().eq("id", d.id);
       if (error) throw error;
+      auditFn({ data: { action: "document.delete", metadata: { name: d.name }, resource: d.storage_path } }).catch(() => {});
     },
     onSuccess: () => { toast.success("File removed."); qc.invalidateQueries({ queryKey: ["documents"] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -175,6 +226,7 @@ function PortalPage() {
     mutationFn: async () => mergeFn(),
     onSuccess: (res) => {
       toast.success(`Packet ready — ${res.count} file${res.count === 1 ? "" : "s"} merged.`);
+      auditFn({ data: { action: "packet.compress", metadata: { count: res.count }, resource: res.path } }).catch(() => {});
       window.open(res.url, "_blank");
       qc.invalidateQueries({ queryKey: ["check_ins"] });
     },
@@ -205,6 +257,7 @@ function PortalPage() {
   async function download(d: Doc) {
     try {
       const res = await signedFn({ data: { path: d.storage_path } });
+      auditFn({ data: { action: "document.download", metadata: { name: d.name }, resource: d.storage_path } }).catch(() => {});
       window.open(res.url, "_blank");
     } catch (e) {
       toast.error((e as Error).message);
@@ -212,6 +265,7 @@ function PortalPage() {
   }
 
   async function signOut() {
+    await auditFn({ data: { action: "logout" } }).catch(() => {});
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
