@@ -27,6 +27,7 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useStaffStatus } from "@/hooks/use-staff-status";
 import { SupportChatbot } from "@/components/support-chatbot";
+import { createDebugLogger } from "@/lib/debug-logger";
 import heroCouple from "@/assets/hero-elderly-couple.jpg";
 import imgNursingHome from "@/assets/service-nursing-home.jpg";
 import imgPace from "@/assets/service-pace.jpg";
@@ -210,33 +211,32 @@ function AuthEntryLink({
     event.preventDefault();
     event.stopPropagation();
 
-    console.debug("[auth-entry] trusted click captured", {
+    log.debug("trusted click captured", {
       role,
       href,
       isTrusted: event.nativeEvent.isTrusted,
-      defaultPrevented: event.defaultPrevented,
       pointerType: (event.nativeEvent as PointerEvent).pointerType ?? "mouse",
     });
 
     window.setTimeout(() => {
       const startPath = window.location.pathname + window.location.search;
-      console.debug("[auth-entry] router.navigate start", { from: startPath, to: href });
+      log.debug("router.navigate start", { from: startPath, to: href });
 
       Promise.resolve(router.navigate({ to: "/auth", search: { role } }))
         .then(() => {
-          console.debug("[auth-entry] router.navigate resolved", {
+          log.debug("router.navigate resolved", {
             current: window.location.pathname + window.location.search,
           });
         })
         .catch((error) => {
-          console.error("[auth-entry] router.navigate failed; falling back to native navigation", error);
+          log.error("router.navigate failed; falling back to native navigation", error);
           window.location.assign(href);
         });
 
       window.setTimeout(() => {
         const currentPath = window.location.pathname + window.location.search;
         if (currentPath !== href && currentPath === startPath) {
-          console.warn("[auth-entry] navigation did not complete; falling back to native navigation", {
+          log.warn("navigation did not complete; falling back to native navigation", {
             current: currentPath,
             expected: href,
           });
@@ -252,6 +252,8 @@ function AuthEntryLink({
     </a>
   );
 }
+
+const log = createDebugLogger("auth-entry");
 
 function Index() {
   const { isStaff } = useStaffStatus();
