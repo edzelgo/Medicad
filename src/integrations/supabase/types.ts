@@ -166,133 +166,29 @@ export type Database = {
             foreignKeyName: "intake_case_events_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
-            referencedRelation: "case_tracks"
+            referencedRelation: "intake_cases"
             referencedColumns: ["id"]
           },
         ]
       }
-      cases: {
-        Row: {
-          address1: string | null
-          apartment: string | null
-          brochure_provided: string[] | null
-          case_number: string
-          case_type: string
-          city: string | null
-          county: string | null
-          created_at: string
-          dob: string | null
-          first_name: string | null
-          id: string
-          last_name: string | null
-          marital_status: string | null
-          meets_asset_requirements: string | null
-          middle_name: string | null
-          months_until_spend_down: number | null
-          phone_cell: string | null
-          phone_home: string | null
-          phone_other: string | null
-          responsible_party_email: string | null
-          responsible_party_name: string | null
-          responsible_party_phone: string | null
-          spouse_dob: string | null
-          spouse_first_name: string | null
-          spouse_last_name: string | null
-          spouse_ssn: string | null
-          ssn: string | null
-          state: string | null
-          transfer_amount: number | null
-          transferred_resources_60mo: boolean | null
-          updated_at: string
-          veteran_status: string | null
-          zip: string | null
-        }
-        Insert: {
-          address1?: string | null
-          apartment?: string | null
-          brochure_provided?: string[] | null
-          case_number: string
-          case_type?: string
-          city?: string | null
-          county?: string | null
-          created_at?: string
-          dob?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          marital_status?: string | null
-          meets_asset_requirements?: string | null
-          middle_name?: string | null
-          months_until_spend_down?: number | null
-          phone_cell?: string | null
-          phone_home?: string | null
-          phone_other?: string | null
-          responsible_party_email?: string | null
-          responsible_party_name?: string | null
-          responsible_party_phone?: string | null
-          spouse_dob?: string | null
-          spouse_first_name?: string | null
-          spouse_last_name?: string | null
-          spouse_ssn?: string | null
-          ssn?: string | null
-          state?: string | null
-          transfer_amount?: number | null
-          transferred_resources_60mo?: boolean | null
-          updated_at?: string
-          veteran_status?: string | null
-          zip?: string | null
-        }
-        Update: {
-          address1?: string | null
-          apartment?: string | null
-          brochure_provided?: string[] | null
-          case_number?: string
-          case_type?: string
-          city?: string | null
-          county?: string | null
-          created_at?: string
-          dob?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          marital_status?: string | null
-          meets_asset_requirements?: string | null
-          middle_name?: string | null
-          months_until_spend_down?: number | null
-          phone_cell?: string | null
-          phone_home?: string | null
-          phone_other?: string | null
-          responsible_party_email?: string | null
-          responsible_party_name?: string | null
-          responsible_party_phone?: string | null
-          spouse_dob?: string | null
-          spouse_first_name?: string | null
-          spouse_last_name?: string | null
-          spouse_ssn?: string | null
-          ssn?: string | null
-          state?: string | null
-          transfer_amount?: number | null
-          transferred_resources_60mo?: boolean | null
-          updated_at?: string
-          veteran_status?: string | null
-          zip?: string | null
-        }
-        Relationships: []
-      }
-      case_tracks: {
+      intake_cases: {
         Row: {
           agent: string | null
           case_id: string
           created_at: string
           date_received: string | null
+          first_name: string | null
           follow_count: number
           follow_up_date: string | null
           id: string
+          last_name: string | null
           marketer: string | null
           notes_count: number
+          phone: string | null
           ref_source: string | null
           status: string | null
           status_date: string | null
+          track_count: number
           updated_at: string
           workflow: string | null
         }
@@ -301,14 +197,18 @@ export type Database = {
           case_id: string
           created_at?: string
           date_received?: string | null
+          first_name?: string | null
           follow_count?: number
           follow_up_date?: string | null
           id?: string
+          last_name?: string | null
           marketer?: string | null
           notes_count?: number
+          phone?: string | null
           ref_source?: string | null
           status?: string | null
           status_date?: string | null
+          track_count?: number
           updated_at?: string
           workflow?: string | null
         }
@@ -317,26 +217,22 @@ export type Database = {
           case_id?: string
           created_at?: string
           date_received?: string | null
+          first_name?: string | null
           follow_count?: number
           follow_up_date?: string | null
           id?: string
+          last_name?: string | null
           marketer?: string | null
           notes_count?: number
+          phone?: string | null
           ref_source?: string | null
           status?: string | null
           status_date?: string | null
+          track_count?: number
           updated_at?: string
           workflow?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "case_tracks_case_id_fkey"
-            columns: ["case_id"]
-            isOneToOne: false
-            referencedRelation: "cases"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       leads: {
         Row: {
@@ -574,29 +470,7 @@ export type Database = {
       }
     }
     Views: {
-      intake_case_view: {
-        Row: {
-          agent: string | null
-          case_id: string | null
-          case_pk: string | null
-          case_type: string | null
-          date_received: string | null
-          first_name: string | null
-          follow_count: number | null
-          follow_up_date: string | null
-          id: string | null
-          last_name: string | null
-          marketer: string | null
-          notes_count: number | null
-          phone: string | null
-          ref_source: string | null
-          status: string | null
-          status_date: string | null
-          track_count: number | null
-          workflow: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_set_user_role: {
@@ -632,7 +506,7 @@ export type Database = {
         | "approved"
         | "denied"
         | "closed"
-      portal_role: "agent" | "referral" | "client" | "admin" | "marketer"
+      portal_role: "agent" | "referral" | "client" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -778,7 +652,7 @@ export const Constants = {
         "denied",
         "closed",
       ],
-      portal_role: ["agent", "referral", "client", "admin", "marketer"],
+      portal_role: ["agent", "referral", "client", "admin"],
     },
   },
 } as const
