@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.admin_set_user_role(uuid, public.portal_role, text) FROM authenticated;
