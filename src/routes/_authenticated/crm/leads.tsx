@@ -20,19 +20,28 @@ function LeadsList() {
   const { data } = useQuery({ queryKey: ["crm", "leads"], queryFn: () => fn() });
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
+  const [source, setSource] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const rows = useMemo(() => {
     const list = data ?? [];
-    return list.filter((l) => {
+    const filtered = list.filter((l) => {
       if (stage && l.stage !== stage) return false;
+      if (source && (l.source ?? "") !== source) return false;
       if (!q) return true;
       const s = q.toLowerCase();
       return [l.full_name, l.first_name, l.last_name, l.email, l.phone, l.state, l.source]
         .some((x) => x?.toLowerCase().includes(s));
     });
-  }, [data, q, stage]);
+    return [...filtered].sort((a, b) => {
+      const t = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (t !== 0) return t;
+      return (a.full_name ?? "").localeCompare(b.full_name ?? "");
+    });
+  }, [data, q, stage, source]);
+  const total = data?.length ?? 0;
+  const resetFilters = () => { setQ(""); setStage(""); setSource(""); };
 
   return (
     <div className="space-y-4">
@@ -62,6 +71,12 @@ function LeadsList() {
           <option value="">All stages</option>
           {["new","intake","screening","application","submitted","approved","denied","closed"].map((s) => <option key={s}>{s}</option>)}
         </select>
+        <select className="border border-input rounded-md px-3 text-sm bg-background" value={source} onChange={(e) => setSource(e.target.value)}>
+          <option value="">All sources</option>
+          {Array.from(new Set((data ?? []).map((l) => l.source ?? "").filter(Boolean))).map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <Button variant="outline" onClick={resetFilters}>Reset filters</Button>
+        <span className="ml-auto self-center text-xs text-muted-foreground">Showing {rows.length} of {total}</span>
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
