@@ -80,7 +80,7 @@ export const listIntakeCases = createServerFn({ method: "GET" })
     builder = applyFilters(builder, data);
 
     const { data: rows, error, count } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
 
     // Aggregates scope to the selected case type (if any), lightweight columns only.
     let aggBuilder = context.supabase.from("intake_case_view").select("workflow,status,agent");
@@ -161,7 +161,7 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
       .from("case_tracks")
       .update(patch)
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const { data: row, error: viewErr } = await context.supabase
       .from("intake_case_view")
       .select("*")
@@ -193,7 +193,7 @@ export const listIntakeCaseEvents = createServerFn({ method: "GET" })
       .eq("case_id", data.caseId)
       .order("created_at", { ascending: false })
       .limit(200);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return (rows ?? []) as IntakeCaseEvent[];
   });
 
@@ -225,7 +225,7 @@ export const bulkUpdateIntakeCases = createServerFn({ method: "POST" })
       .from("case_tracks")
       .update(patch, { count: "exact" })
       .in("id", data.ids);
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { updated: count ?? 0 };
   });
 
@@ -249,7 +249,7 @@ export const exportIntakeCases = createServerFn({ method: "POST" })
       .limit(5000);
     builder = applyFilters(builder, data);
     const { data: rows, error } = await builder;
-    if (error) throw new Error(error.message);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const cases = (rows ?? []) as IntakeCase[];
     if (!cases.length) return [];
 
