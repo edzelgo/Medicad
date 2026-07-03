@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
-import { Users, KanbanSquare, FileText, LogOut } from "lucide-react";
+import { Users, KanbanSquare, FileText, LogOut, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { adminMyAccess } from "@/lib/admin.functions";
@@ -16,6 +16,7 @@ const nav = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/admin/documents", label: "Documents", icon: FileText },
+  { to: "/admin/audit", label: "Audit Logs", icon: ShieldCheck },
 ];
 
 function AdminLayout() {
