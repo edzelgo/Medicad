@@ -6,10 +6,27 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const cloudEnvDefines = {
+  "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+    process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+  ),
+  "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY,
+  ),
+  "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(
+    process.env.VITE_SUPABASE_PROJECT_ID || process.env.SUPABASE_PROJECT_ID,
+  ),
+};
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+  },
+  vite: {
+    define: Object.fromEntries(
+      Object.entries(cloudEnvDefines).filter(([, value]) => value !== undefined),
+    ),
   },
 });
