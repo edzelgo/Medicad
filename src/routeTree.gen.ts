@@ -19,6 +19,8 @@ import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicLeadsRouteImport } from './routes/api/public/leads'
 import { Route as AuthenticatedCrmTeamRouteImport } from './routes/_authenticated/crm/team'
+import { Route as AuthenticatedCrmSettingsRouteImport } from './routes/_authenticated/crm/settings'
+import { Route as AuthenticatedCrmReportsRouteImport } from './routes/_authenticated/crm/reports'
 import { Route as AuthenticatedCrmPipelineRouteImport } from './routes/_authenticated/crm/pipeline'
 import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
 import { Route as AuthenticatedCrmIntakeDashboardRouteImport } from './routes/_authenticated/crm/intake-dashboard'
@@ -27,6 +29,8 @@ import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedCrmLeadsNewRouteImport } from './routes/_authenticated/crm/leads.new'
 import { Route as AuthenticatedCrmLeadsIdRouteImport } from './routes/_authenticated/crm/leads.$id'
+import { Route as AuthenticatedCrmCasesNewRouteImport } from './routes/_authenticated/crm/cases.new'
+import { Route as AuthenticatedCrmCasesIdRouteImport } from './routes/_authenticated/crm/cases.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -77,6 +81,17 @@ const AuthenticatedCrmTeamRoute = AuthenticatedCrmTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => AuthenticatedCrmRouteRoute,
 } as any)
+const AuthenticatedCrmSettingsRoute =
+  AuthenticatedCrmSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedCrmRouteRoute,
+  } as any)
+const AuthenticatedCrmReportsRoute = AuthenticatedCrmReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedCrmRouteRoute,
+} as any)
 const AuthenticatedCrmPipelineRoute =
   AuthenticatedCrmPipelineRouteImport.update({
     id: '/pipeline',
@@ -122,6 +137,17 @@ const AuthenticatedCrmLeadsIdRoute = AuthenticatedCrmLeadsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedCrmLeadsRoute,
 } as any)
+const AuthenticatedCrmCasesNewRoute =
+  AuthenticatedCrmCasesNewRouteImport.update({
+    id: '/cases/new',
+    path: '/cases/new',
+    getParentRoute: () => AuthenticatedCrmRouteRoute,
+  } as any)
+const AuthenticatedCrmCasesIdRoute = AuthenticatedCrmCasesIdRouteImport.update({
+  id: '/cases/$id',
+  path: '/cases/$id',
+  getParentRoute: () => AuthenticatedCrmRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,10 +161,14 @@ export interface FileRoutesByFullPath {
   '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
+  '/crm/reports': typeof AuthenticatedCrmReportsRoute
+  '/crm/settings': typeof AuthenticatedCrmSettingsRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/crm/': typeof AuthenticatedCrmIndexRoute
+  '/crm/cases/$id': typeof AuthenticatedCrmCasesIdRoute
+  '/crm/cases/new': typeof AuthenticatedCrmCasesNewRoute
   '/crm/leads/$id': typeof AuthenticatedCrmLeadsIdRoute
   '/crm/leads/new': typeof AuthenticatedCrmLeadsNewRoute
 }
@@ -152,10 +182,14 @@ export interface FileRoutesByTo {
   '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
+  '/crm/reports': typeof AuthenticatedCrmReportsRoute
+  '/crm/settings': typeof AuthenticatedCrmSettingsRoute
   '/crm/team': typeof AuthenticatedCrmTeamRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/crm': typeof AuthenticatedCrmIndexRoute
+  '/crm/cases/$id': typeof AuthenticatedCrmCasesIdRoute
+  '/crm/cases/new': typeof AuthenticatedCrmCasesNewRoute
   '/crm/leads/$id': typeof AuthenticatedCrmLeadsIdRoute
   '/crm/leads/new': typeof AuthenticatedCrmLeadsNewRoute
 }
@@ -173,10 +207,14 @@ export interface FileRoutesById {
   '/_authenticated/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/_authenticated/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
+  '/_authenticated/crm/reports': typeof AuthenticatedCrmReportsRoute
+  '/_authenticated/crm/settings': typeof AuthenticatedCrmSettingsRoute
   '/_authenticated/crm/team': typeof AuthenticatedCrmTeamRoute
   '/api/public/leads': typeof ApiPublicLeadsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
+  '/_authenticated/crm/cases/$id': typeof AuthenticatedCrmCasesIdRoute
+  '/_authenticated/crm/cases/new': typeof AuthenticatedCrmCasesNewRoute
   '/_authenticated/crm/leads/$id': typeof AuthenticatedCrmLeadsIdRoute
   '/_authenticated/crm/leads/new': typeof AuthenticatedCrmLeadsNewRoute
 }
@@ -194,10 +232,14 @@ export interface FileRouteTypes {
     | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/pipeline'
+    | '/crm/reports'
+    | '/crm/settings'
     | '/crm/team'
     | '/api/public/leads'
     | '/admin/'
     | '/crm/'
+    | '/crm/cases/$id'
+    | '/crm/cases/new'
     | '/crm/leads/$id'
     | '/crm/leads/new'
   fileRoutesByTo: FileRoutesByTo
@@ -211,10 +253,14 @@ export interface FileRouteTypes {
     | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/pipeline'
+    | '/crm/reports'
+    | '/crm/settings'
     | '/crm/team'
     | '/api/public/leads'
     | '/admin'
     | '/crm'
+    | '/crm/cases/$id'
+    | '/crm/cases/new'
     | '/crm/leads/$id'
     | '/crm/leads/new'
   id:
@@ -231,10 +277,14 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/intake-dashboard'
     | '/_authenticated/crm/leads'
     | '/_authenticated/crm/pipeline'
+    | '/_authenticated/crm/reports'
+    | '/_authenticated/crm/settings'
     | '/_authenticated/crm/team'
     | '/api/public/leads'
     | '/_authenticated/admin/'
     | '/_authenticated/crm/'
+    | '/_authenticated/crm/cases/$id'
+    | '/_authenticated/crm/cases/new'
     | '/_authenticated/crm/leads/$id'
     | '/_authenticated/crm/leads/new'
   fileRoutesById: FileRoutesById
@@ -318,6 +368,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmTeamRouteImport
       parentRoute: typeof AuthenticatedCrmRouteRoute
     }
+    '/_authenticated/crm/settings': {
+      id: '/_authenticated/crm/settings'
+      path: '/settings'
+      fullPath: '/crm/settings'
+      preLoaderRoute: typeof AuthenticatedCrmSettingsRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
+    '/_authenticated/crm/reports': {
+      id: '/_authenticated/crm/reports'
+      path: '/reports'
+      fullPath: '/crm/reports'
+      preLoaderRoute: typeof AuthenticatedCrmReportsRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
     '/_authenticated/crm/pipeline': {
       id: '/_authenticated/crm/pipeline'
       path: '/pipeline'
@@ -374,6 +438,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmLeadsIdRouteImport
       parentRoute: typeof AuthenticatedCrmLeadsRoute
     }
+    '/_authenticated/crm/cases/new': {
+      id: '/_authenticated/crm/cases/new'
+      path: '/cases/new'
+      fullPath: '/crm/cases/new'
+      preLoaderRoute: typeof AuthenticatedCrmCasesNewRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
+    '/_authenticated/crm/cases/$id': {
+      id: '/_authenticated/crm/cases/$id'
+      path: '/cases/$id'
+      fullPath: '/crm/cases/$id'
+      preLoaderRoute: typeof AuthenticatedCrmCasesIdRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
   }
 }
 
@@ -416,16 +494,24 @@ interface AuthenticatedCrmRouteRouteChildren {
   AuthenticatedCrmIntakeDashboardRoute: typeof AuthenticatedCrmIntakeDashboardRoute
   AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRouteWithChildren
   AuthenticatedCrmPipelineRoute: typeof AuthenticatedCrmPipelineRoute
+  AuthenticatedCrmReportsRoute: typeof AuthenticatedCrmReportsRoute
+  AuthenticatedCrmSettingsRoute: typeof AuthenticatedCrmSettingsRoute
   AuthenticatedCrmTeamRoute: typeof AuthenticatedCrmTeamRoute
   AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
+  AuthenticatedCrmCasesIdRoute: typeof AuthenticatedCrmCasesIdRoute
+  AuthenticatedCrmCasesNewRoute: typeof AuthenticatedCrmCasesNewRoute
 }
 
 const AuthenticatedCrmRouteRouteChildren: AuthenticatedCrmRouteRouteChildren = {
   AuthenticatedCrmIntakeDashboardRoute: AuthenticatedCrmIntakeDashboardRoute,
   AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRouteWithChildren,
   AuthenticatedCrmPipelineRoute: AuthenticatedCrmPipelineRoute,
+  AuthenticatedCrmReportsRoute: AuthenticatedCrmReportsRoute,
+  AuthenticatedCrmSettingsRoute: AuthenticatedCrmSettingsRoute,
   AuthenticatedCrmTeamRoute: AuthenticatedCrmTeamRoute,
   AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
+  AuthenticatedCrmCasesIdRoute: AuthenticatedCrmCasesIdRoute,
+  AuthenticatedCrmCasesNewRoute: AuthenticatedCrmCasesNewRoute,
 }
 
 const AuthenticatedCrmRouteRouteWithChildren =
