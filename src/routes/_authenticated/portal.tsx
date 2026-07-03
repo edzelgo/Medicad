@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
   CheckCircle2, Circle, Clock, Sparkles, ChevronRight, ClipboardList, Brain, AlertTriangle, XCircle,
+  Building2, Loader2, Ban, HourglassIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { REQUIRED_DOCUMENTS } from "@/lib/medicaid-requirements";
@@ -54,6 +55,30 @@ export const Route = createFileRoute("/_authenticated/portal")({
 type Doc = { id: string; name: string; storage_path: string; mime_type: string | null; size_bytes: number | null; created_at: string };
 type CheckIn = { id: string; title: string; body: string | null; status: string; created_at: string };
 type Task = { id: string; title: string; description: string | null; status: string; sort_order: number; completed_at: string | null };
+type AccountAction = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "pending" | "in_progress" | "waiting_on_client" | "complete" | "blocked";
+  owner: string;
+  sort_order: number;
+  due_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
+const ACTION_STATUSES: AccountAction["status"][] = [
+  "pending", "in_progress", "waiting_on_client", "complete", "blocked",
+];
+
+const ACTION_STATUS_META: Record<AccountAction["status"], { label: string; className: string; Icon: typeof CheckCircle2 }> = {
+  pending:             { label: "Pending",             className: "bg-muted text-foreground",                        Icon: Circle },
+  in_progress:         { label: "In progress",         className: "bg-primary/10 text-primary",                      Icon: Loader2 },
+  waiting_on_client:   { label: "Waiting on you",      className: "bg-amber-100 text-amber-800",                     Icon: HourglassIcon },
+  complete:            { label: "Complete",            className: "bg-accent/15 text-accent-foreground border border-accent/30", Icon: CheckCircle2 },
+  blocked:             { label: "Blocked",             className: "bg-destructive/10 text-destructive",              Icon: Ban },
+};
 
 function PortalPage() {
   const navigate = useNavigate();
@@ -121,9 +146,41 @@ function PortalPage() {
     },
   });
 
+  const actionsQ = useQuery({
+    queryKey: ["account_actions"],
+    queryFn: async (): Promise<AccountAction[]> => {
+      const { data, error } = await supabase
+        .from("account_actions")
+        .select("id, title, description, status, owner, sort_order, due_at, completed_at, notes, updated_at")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AccountAction[];
+    },
+  });
+
+  const isAdminQ = useQuery({
+    queryKey: ["is-admin-self"],
+    queryFn: async (): Promise<boolean> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role,status")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .eq("status", "approved")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+  const isAdmin = !!isAdminQ.data;
+
   const docs = docsQ.data ?? [];
   const checkIns = checkInsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
+  const actions = actionsQ.data ?? [];
+  const actionsDone = actions.filter((a) => a.status === "complete").length;
+  const actionsPct = actions.length ? Math.round((actionsDone / actions.length) * 100) : 0;
   const completedTasks = tasks.filter((t) => t.status === "done").length;
   const progress = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
@@ -252,6 +309,29 @@ function PortalPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const updateActionStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AccountAction["status"] }) => {
+      const { error } = await supabase
+        .from("account_actions")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["account_actions"] });
+      const prev = qc.getQueryData<AccountAction[]>(["account_actions"]);
+      if (prev) {
+        qc.setQueryData<AccountAction[]>(["account_actions"], prev.map((a) => a.id === id ? { ...a, status } : a));
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["account_actions"], ctx.prev);
+      toast.error("Couldn't update — you may not have permission.");
+    },
+    onSuccess: () => { toast.success("Action updated."); qc.invalidateQueries({ queryKey: ["account_actions"] }); },
   });
 
   async function download(d: Doc) {
@@ -383,6 +463,105 @@ function PortalPage() {
               {checkIns.length === 0 && <li className="text-sm text-muted-foreground">No check-ins yet.</li>}
             </ol>
           </div>
+        </section>
+
+        {/* Company action check-ins (role-aware) */}
+        <section className="rounded-xl border border-border bg-card p-7">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-md bg-gradient-primary flex items-center justify-center shrink-0">
+                <Building2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Company check-ins · {role ?? "account"}
+                </span>
+                <h2 className="font-serif text-2xl mt-1">What Medicaid Success will do for your account</h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                  A live status of every action our team owes you. Anything marked <span className="font-medium text-amber-800">Waiting on you</span> is blocked on a document or reply from your side.
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-serif text-primary">
+                {actionsDone}<span className="text-muted-foreground text-base"> / {actions.length}</span>
+              </div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1">Completed</div>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <Progress value={actionsPct} aria-label="Company actions progress" />
+          </div>
+
+          <ul className="mt-6 divide-y divide-border">
+            {actions.map((a) => {
+              const meta = ACTION_STATUS_META[a.status];
+              const StatusIcon = meta.Icon;
+              return (
+                <li key={a.id} className="py-4 flex items-start gap-4 flex-wrap sm:flex-nowrap">
+                  <StatusIcon
+                    className={`h-5 w-5 mt-0.5 shrink-0 ${a.status === "in_progress" ? "animate-spin" : ""} ${
+                      a.status === "complete" ? "text-accent" :
+                      a.status === "blocked" ? "text-destructive" :
+                      a.status === "waiting_on_client" ? "text-amber-700" :
+                      "text-muted-foreground"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`font-medium ${a.status === "complete" ? "line-through text-muted-foreground" : ""}`}>
+                        {a.title}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${meta.className}`}>
+                        {meta.label}
+                      </span>
+                      {a.owner && a.owner !== "company" && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-foreground">
+                          Owner: {a.owner}
+                        </span>
+                      )}
+                    </div>
+                    {a.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{a.description}</p>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      {a.due_at && <span>Due {new Date(a.due_at).toLocaleDateString()}</span>}
+                      {a.completed_at && <span>Completed {new Date(a.completed_at).toLocaleDateString()}</span>}
+                      <span>Updated {new Date(a.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <select
+                      aria-label={`Update status for ${a.title}`}
+                      className="text-xs rounded-md border border-border bg-background px-2 py-1"
+                      value={a.status}
+                      disabled={updateActionStatus.isPending}
+                      onChange={(e) =>
+                        updateActionStatus.mutate({ id: a.id, status: e.target.value as AccountAction["status"] })
+                      }
+                    >
+                      {ACTION_STATUSES.map((s) => (
+                        <option key={s} value={s}>{ACTION_STATUS_META[s].label}</option>
+                      ))}
+                    </select>
+                  )}
+                </li>
+              );
+            })}
+            {actions.length === 0 && (
+              <li className="py-6 text-sm text-muted-foreground">
+                No company actions yet — your account was just created. Refresh in a moment.
+              </li>
+            )}
+          </ul>
+
+          {!isAdmin && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Your specialist updates these statuses as work progresses. Reach out through the chat if anything looks off.
+            </p>
+          )}
         </section>
 
         {/* AI Eligibility Analyzer */}
