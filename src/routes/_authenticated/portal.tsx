@@ -178,8 +178,14 @@ function PortalPage() {
       const { error: insErr } = await supabase.from("documents").insert({
         user_id: user.id, name: f.name, storage_path: path, mime_type: f.type || null, size_bytes: f.size,
       });
-      if (insErr) toast.error(`${f.name}: ${insErr.message}`);
-      else success++;
+      if (insErr) {
+        toast.error(`${f.name}: rejected by security check`);
+        console.error("[upload]", insErr.message);
+        await supabase.storage.from("documents").remove([path]);
+      } else {
+        success++;
+        auditFn({ data: { action: "document.upload", metadata: { name: f.name, size: f.size, mime: f.type || null }, resource: path } }).catch(() => {});
+      }
       setUploadProgress({ done: i + 1, total: files.length });
     }
     setUploading(false);
