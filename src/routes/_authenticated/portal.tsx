@@ -146,6 +146,23 @@ function PortalPage() {
     let success = 0;
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
+      const ext = (f.name.split(".").pop() ?? "").toLowerCase();
+      const mime = (f.type || "").toLowerCase();
+      if (!f.name || f.name.length > 255 || /[\\/]|\.\./.test(f.name)) {
+        toast.error(`${f.name || "(unnamed)"} — invalid file name`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
+      if (BLOCKED_EXT.has(ext) || (mime && !ALLOWED_MIME.has(mime))) {
+        toast.error(`${f.name} — file type not allowed`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
+      if (f.size <= 0) {
+        toast.error(`${f.name} is empty`);
+        setUploadProgress({ done: i + 1, total: files.length });
+        continue;
+      }
       if (f.size > MAX_FILE_MB * 1024 * 1024) {
         toast.error(`${f.name} exceeds ${MAX_FILE_MB}MB`);
         setUploadProgress({ done: i + 1, total: files.length });
