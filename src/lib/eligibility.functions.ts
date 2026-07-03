@@ -78,7 +78,7 @@ export const analyzeEligibility = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .order("created_at", { ascending: true })
       .limit(25);
-    if (listErr) throw new Error(listErr.message);
+    if (listErr) { console.error("[db]", listErr.message); throw new Error("Operation failed. Please try again."); }
     if (!docs || docs.length === 0) {
       throw new Error("Upload at least one document before running the analysis.");
     }
