@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { CaseForm, type NewCaseValues } from "@/components/crm/case-form";
+import { IntakeForm, type IntakeValues } from "@/components/crm/intake-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { onboardClient, myOnboardAccess } from "@/lib/onboarding.functions";
 import { toast } from "sonner";
 
@@ -12,18 +11,18 @@ export const Route = createFileRoute("/_authenticated/onboard")({
   beforeLoad: async () => {
     const res = await myOnboardAccess();
     if (!res.allowed) throw redirect({ to: "/portal" });
-    return { role: res.role };
+    return { onboarderRole: res.role };
   },
   component: OnboardPage,
 });
 
 function OnboardPage() {
-  const { role } = Route.useRouteContext();
+  const { onboarderRole } = Route.useRouteContext();
   const submit = useServerFn(onboardClient);
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [invite, setInvite] = useState(false);
-  const [email, setEmail] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -31,9 +30,12 @@ function OnboardPage() {
         <div className="max-w-5xl mx-auto p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide">
-              {role === "referral" ? "Referral partner" : "Staff"} onboarding
+              {onboarderRole === "referral" ? "Referral partner" : "Staff"} intake
             </div>
-            <h1 className="font-serif text-2xl">Onboard a new client</h1>
+            <h1 className="font-serif text-2xl">Facility Intake</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Submit a new resident referral. Fields match the Facility Intake spec.
+            </p>
           </div>
           <Link to="/portal" className="text-sm text-muted-foreground hover:text-foreground">Back to portal</Link>
         </div>
@@ -47,44 +49,42 @@ function OnboardPage() {
               Send this client a portal invite email
             </label>
             <div className="md:col-span-2 space-y-1">
-              <Label className="text-xs text-muted-foreground">Client email</Label>
+              <Label className="text-xs text-muted-foreground">Client or representative email</Label>
               <Input
                 type="email"
                 disabled={!invite}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="client@example.com"
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            When enabled, the client gets an email to set a password and access their onboarding portal.
-            Their case is always created regardless.
+            When enabled, the recipient gets a magic-link email to set a password and access the client onboarding portal.
+            The intake is always saved regardless.
           </p>
         </div>
 
-        <CaseForm
-          mode="create"
-          submitLabel={invite ? "Create case & send invite" : "Create case"}
+        <IntakeForm
+          submitLabel={invite ? "Submit intake & send invite" : "Submit intake"}
           busy={busy}
-          onSubmit={async (v) => {
-            const values = v as NewCaseValues;
-            if (invite && !email) { toast.error("Enter the client's email or uncheck invite"); return; }
+          onSubmit={async (v: IntakeValues) => {
+            if (invite && !inviteEmail) { toast.error("Enter an invite email or uncheck the invite option"); return; }
             setBusy(true);
             try {
               const res = await submit({
-                data: { ...values, invite_client: invite, client_email: invite ? email : "" } as never,
+                data: { ...v, invite_client: invite, client_email: invite ? inviteEmail : "" } as never,
               });
-              if (res.invite.sent) toast.success(`Case ${res.case_number} created · invite sent to ${res.invite.email}`);
-              else if (invite) toast.error(`Case ${res.case_number} created, but invite failed: ${res.invite.error}`);
-              else toast.success(`Case ${res.case_number} created`);
-              if (role === "admin" || role === "agent") {
-                navigate({ to: "/crm/cases/$id", params: { id: res.case_id } });
+              if (res.invite.sent) toast.success(`Intake saved · invite sent to ${res.invite.email}`);
+              else if (invite) toast.error(`Intake saved, but invite failed: ${res.invite.error}`);
+              else toast.success("Intake saved");
+              if (onboarderRole === "admin" || onboarderRole === "agent") {
+                navigate({ to: "/crm/leads/$id", params: { id: res.lead_id } });
               } else {
                 navigate({ to: "/portal" });
               }
             } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Failed");
+              toast.error(e instanceof Error ? e.message : "Failed to submit intake");
             } finally {
               setBusy(false);
             }

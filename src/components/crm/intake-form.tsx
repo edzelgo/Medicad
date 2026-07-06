@@ -18,7 +18,18 @@ export type IntakeValues = {
   brochure_provided?: string[]; household_size?: number; monthly_income?: number; notes?: string;
 };
 
-const BROCHURES = ["Medicaid Overview", "Spend-Down Guide", "PACE Program", "Home Care", "Nursing Home Planning"];
+// Options mirror the Facility Intake spec (Bolt_Intake_May_19.xlsx).
+const REFERRAL_STATUS_OPTIONS = [
+  "Pre-Admission Screening",
+  "Resident is Over Resourced and Needs Medicaid Planning",
+  "Application Needs to be Filled",
+  "Medicaid Was Approved and Needs Assistance with Annual Redetermination",
+];
+const VETERAN_STATUS_OPTIONS = ["Not a Veteran", "Veteran", "Spouse of Veteran", "Widow/Widower of Veteran"];
+const MARITAL_STATUS_OPTIONS = ["Single", "Married with Community Spouse", "Married with Facility Spouse"];
+const LRI_STATUS_OPTIONS = ["Spouse", "Agent Under Power of Attorney", "Court Appointed Guardian/Conservator"];
+const BROCHURES = ["Medicaid Application", "Benefit Eligibility Planning"];
+const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
 
 export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", busy }: {
   initial?: Partial<IntakeValues>;
@@ -36,88 +47,85 @@ export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", bus
       className="space-y-6"
       onSubmit={(e) => { e.preventDefault(); onSubmit(v); }}
     >
-      <Section title="Applicant">
+      <Section title="Referral Type">
+        <Grid>
+          <Field label="Current status of referral *" wide>
+            <SelectInput value={v.referral_status} onChange={(x) => set("referral_status", x)} options={REFERRAL_STATUS_OPTIONS} />
+          </Field>
+          <Field label="Referral source"><Input value={v.source ?? ""} onChange={(e) => set("source", e.target.value)} placeholder="Facility name" /></Field>
+        </Grid>
+      </Section>
+
+      <Section title="Applicant Information">
         <Grid>
           <Field label="First name *"><Input required value={v.first_name} onChange={(e) => set("first_name", e.target.value)} /></Field>
-          <Field label="Middle"><Input value={v.middle_initial ?? ""} onChange={(e) => set("middle_initial", e.target.value)} /></Field>
+          <Field label="Middle initial"><Input maxLength={2} value={v.middle_initial ?? ""} onChange={(e) => set("middle_initial", e.target.value)} /></Field>
           <Field label="Last name *"><Input required value={v.last_name} onChange={(e) => set("last_name", e.target.value)} /></Field>
-          <Field label="Email"><Input type="email" value={v.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
+          <Field label="Date of birth"><Input type="date" value={v.dob ?? ""} onChange={(e) => set("dob", e.target.value)} /></Field>
+          <Field label="Social Security Number"><Input value={v.ssn ?? ""} onChange={(e) => set("ssn", e.target.value)} placeholder="XXX-XX-XXXX" /></Field>
           <Field label="Phone"><Input value={v.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
-          <Field label="DOB"><Input type="date" value={v.dob ?? ""} onChange={(e) => set("dob", e.target.value)} /></Field>
-          <Field label="SSN"><Input value={v.ssn ?? ""} onChange={(e) => set("ssn", e.target.value)} /></Field>
-        </Grid>
-      </Section>
-
-      <Section title="Address">
-        <Grid>
-          <Field label="Street" wide><Input value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
-          <Field label="State"><Input value={v.state ?? ""} onChange={(e) => set("state", e.target.value)} /></Field>
-          <Field label="ZIP"><Input value={v.zip ?? ""} onChange={(e) => set("zip", e.target.value)} /></Field>
-        </Grid>
-      </Section>
-
-      <Section title="Referral & Status">
-        <Grid>
-          <Field label="Referral status">
-            <SelectInput value={v.referral_status} onChange={(x) => set("referral_status", x)} options={["New", "In progress", "Approved", "Declined"]} />
+          <Field label="Address prior to entering facility" wide><Input value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
+          <Field label="State">
+            <SelectInput value={v.state} onChange={(x) => set("state", x)} options={US_STATES} />
           </Field>
+          <Field label="ZIP code"><Input value={v.zip ?? ""} onChange={(e) => set("zip", e.target.value)} /></Field>
           <Field label="Veteran status">
-            <SelectInput value={v.veteran_status} onChange={(x) => set("veteran_status", x)} options={["No", "Yes", "Spouse of veteran"]} />
+            <SelectInput value={v.veteran_status} onChange={(x) => set("veteran_status", x)} options={VETERAN_STATUS_OPTIONS} />
           </Field>
           <Field label="Marital status">
-            <SelectInput value={v.marital_status} onChange={(x) => set("marital_status", x)} options={["Single", "Married", "Widowed", "Divorced"]} />
+            <SelectInput value={v.marital_status} onChange={(x) => set("marital_status", x)} options={MARITAL_STATUS_OPTIONS} />
           </Field>
-          <Field label="Source"><Input value={v.source ?? ""} onChange={(e) => set("source", e.target.value)} /></Field>
         </Grid>
       </Section>
 
-      {v.marital_status === "Married" && (
+      {v.marital_status?.startsWith("Married") && (
         <Section title="Spouse">
           <Grid>
             <Field label="Spouse first name"><Input value={v.spouse_first_name ?? ""} onChange={(e) => set("spouse_first_name", e.target.value)} /></Field>
             <Field label="Spouse last name"><Input value={v.spouse_last_name ?? ""} onChange={(e) => set("spouse_last_name", e.target.value)} /></Field>
-            <Field label="Spouse DOB"><Input type="date" value={v.spouse_dob ?? ""} onChange={(e) => set("spouse_dob", e.target.value)} /></Field>
+            <Field label="Spouse date of birth"><Input type="date" value={v.spouse_dob ?? ""} onChange={(e) => set("spouse_dob", e.target.value)} /></Field>
             <Field label="Spouse SSN"><Input value={v.spouse_ssn ?? ""} onChange={(e) => set("spouse_ssn", e.target.value)} /></Field>
           </Grid>
         </Section>
       )}
 
-      <Section title="Legally Responsible Individual">
+      <Section title="Representative">
         <div className="flex items-center gap-2 mb-3">
           <Checkbox id="has_lri" checked={!!v.has_lri} onCheckedChange={(c) => set("has_lri", !!c)} />
-          <Label htmlFor="has_lri">Has an LRI</Label>
+          <Label htmlFor="has_lri">There is a Legally Responsible Individual</Label>
         </div>
         {v.has_lri && (
           <Grid>
-            <Field label="LRI first name"><Input value={v.lri_first_name ?? ""} onChange={(e) => set("lri_first_name", e.target.value)} /></Field>
-            <Field label="LRI last name"><Input value={v.lri_last_name ?? ""} onChange={(e) => set("lri_last_name", e.target.value)} /></Field>
-            <Field label="LRI phone"><Input value={v.lri_phone ?? ""} onChange={(e) => set("lri_phone", e.target.value)} /></Field>
-            <Field label="LRI email"><Input type="email" value={v.lri_email ?? ""} onChange={(e) => set("lri_email", e.target.value)} /></Field>
-            <Field label="LRI status"><Input value={v.lri_status ?? ""} onChange={(e) => set("lri_status", e.target.value)} /></Field>
+            <Field label="First name"><Input value={v.lri_first_name ?? ""} onChange={(e) => set("lri_first_name", e.target.value)} /></Field>
+            <Field label="Last name"><Input value={v.lri_last_name ?? ""} onChange={(e) => set("lri_last_name", e.target.value)} /></Field>
+            <Field label="Phone number"><Input value={v.lri_phone ?? ""} onChange={(e) => set("lri_phone", e.target.value)} /></Field>
+            <Field label="Email"><Input type="email" value={v.lri_email ?? ""} onChange={(e) => set("lri_email", e.target.value)} /></Field>
+            <Field label="Relationship / status">
+              <SelectInput value={v.lri_status} onChange={(x) => set("lri_status", x)} options={LRI_STATUS_OPTIONS} />
+            </Field>
           </Grid>
         )}
       </Section>
 
-      <Section title="Financial">
+      <Section title="Spend Down Information">
         <Grid>
-          <Field label="Spend-down completed">
+          <Field label="Spend-down completed or likely within 60 days?">
             <SelectInput value={v.spend_down_completed === undefined ? undefined : v.spend_down_completed ? "Yes" : "No"} onChange={(x) => set("spend_down_completed", x === "Yes")} options={["Yes", "No"]} />
           </Field>
-          <Field label="Transferred resources (60mo)">
+          <Field label="Transferred resources in last 60 months?">
             <SelectInput value={v.transferred_resources_60mo === undefined ? undefined : v.transferred_resources_60mo ? "Yes" : "No"} onChange={(x) => set("transferred_resources_60mo", x === "Yes")} options={["Yes", "No"]} />
           </Field>
-          <Field label="Transfer amount"><Input type="number" value={v.transfer_amount ?? ""} onChange={(e) => set("transfer_amount", e.target.value ? Number(e.target.value) : undefined)} /></Field>
-          <Field label="Retroactive required">
+          <Field label="Estimated transfer amount"><Input type="number" value={v.transfer_amount ?? ""} onChange={(e) => set("transfer_amount", e.target.value ? Number(e.target.value) : undefined)} /></Field>
+          <Field label="Retroactive benefits required?">
             <SelectInput value={v.retroactive_required === undefined ? undefined : v.retroactive_required ? "Yes" : "No"} onChange={(x) => set("retroactive_required", x === "Yes")} options={["Yes", "No"]} />
           </Field>
           <Field label="Date first coverage needed"><Input type="date" value={v.date_first_coverage ?? ""} onChange={(e) => set("date_first_coverage", e.target.value)} /></Field>
-          <Field label="Estimated spend-down remaining"><Input type="number" value={v.estimated_spend_down_remaining ?? ""} onChange={(e) => set("estimated_spend_down_remaining", e.target.value ? Number(e.target.value) : undefined)} /></Field>
-          <Field label="Household size"><Input type="number" value={v.household_size ?? ""} onChange={(e) => set("household_size", e.target.value ? Number(e.target.value) : undefined)} /></Field>
-          <Field label="Monthly income"><Input type="number" value={v.monthly_income ?? ""} onChange={(e) => set("monthly_income", e.target.value ? Number(e.target.value) : undefined)} /></Field>
+          <Field label="Estimated resources still to spend down"><Input type="number" value={v.estimated_spend_down_remaining ?? ""} onChange={(e) => set("estimated_spend_down_remaining", e.target.value ? Number(e.target.value) : undefined)} /></Field>
+          <Field label="Email (optional)"><Input type="email" value={v.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
         </Grid>
       </Section>
 
-      <Section title="Brochures provided">
+      <Section title="Brochure Provided">
         <div className="flex flex-wrap gap-3">
           {BROCHURES.map((b) => {
             const selected = (v.brochure_provided ?? []).includes(b);
