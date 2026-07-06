@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
+import { Route as AuthenticatedOnboardRouteImport } from './routes/_authenticated/onboard'
 import { Route as AuthenticatedCrmRouteRouteImport } from './routes/_authenticated/crm/route'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm/index'
@@ -62,6 +63,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedPortalRoute = AuthenticatedPortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardRoute = AuthenticatedOnboardRouteImport.update({
+  id: '/onboard',
+  path: '/onboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCrmRouteRoute = AuthenticatedCrmRouteRouteImport.update({
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/crm': typeof AuthenticatedCrmRouteRouteWithChildren
+  '/onboard': typeof AuthenticatedOnboardRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/onboard': typeof AuthenticatedOnboardRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/crm': typeof AuthenticatedCrmRouteRouteWithChildren
+  '/_authenticated/onboard': typeof AuthenticatedOnboardRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin'
     | '/crm'
+    | '/onboard'
     | '/portal'
     | '/admin/audit'
     | '/admin/documents'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacy'
     | '/terms'
+    | '/onboard'
     | '/portal'
     | '/admin/audit'
     | '/admin/documents'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/crm'
+    | '/_authenticated/onboard'
     | '/_authenticated/portal'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/documents'
@@ -376,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof AuthenticatedPortalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboard': {
+      id: '/_authenticated/onboard'
+      path: '/onboard'
+      fullPath: '/onboard'
+      preLoaderRoute: typeof AuthenticatedOnboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/crm': {
@@ -583,12 +602,14 @@ const AuthenticatedCrmRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedCrmRouteRoute: typeof AuthenticatedCrmRouteRouteWithChildren
+  AuthenticatedOnboardRoute: typeof AuthenticatedOnboardRoute
   AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedCrmRouteRoute: AuthenticatedCrmRouteRouteWithChildren,
+  AuthenticatedOnboardRoute: AuthenticatedOnboardRoute,
   AuthenticatedPortalRoute: AuthenticatedPortalRoute,
 }
 
