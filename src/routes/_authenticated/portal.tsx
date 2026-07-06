@@ -371,6 +371,11 @@ function PortalPage() {
               <div className="font-medium">{profile?.full_name ?? email}</div>
               <div className="text-xs text-muted-foreground">{email}</div>
             </div>
+            {(role === "agent" || role === "referral") && (
+              <Button asChild size="sm">
+                <a href="/onboard">+ Onboard client</a>
+              </Button>
+            )}
             <ReadabilityToggle />
             <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sign out">
               <LogOut className="h-4 w-4 mr-2" aria-hidden="true" /> Sign out
