@@ -17,7 +17,6 @@ const nav: NavItem[] = [
   { to: "/crm", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/crm/intake-dashboard", label: "Intake Dashboard", icon: ClipboardList },
   { to: "/crm/cases/new", label: "Add New Case", icon: FolderPlus },
-  { to: "/onboard", label: "Onboard Client", icon: UserPlus },
   { to: "/crm/leads", label: "Leads", icon: Users },
   { to: "/crm/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/crm/reports", label: "Reports", icon: BarChart3 },
@@ -34,6 +33,14 @@ function CrmLayout() {
         <div className="p-4 border-b border-border">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">Back to site</Link>
           <div className="mt-2 font-serif text-lg">Medicaid CRM</div>
+        </div>
+        <div className="p-3 border-b border-border">
+          <Link
+            to="/onboard"
+            className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+          >
+            <UserPlus className="h-4 w-4" /> Onboard New Client
+          </Link>
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {nav.map((n) => {
