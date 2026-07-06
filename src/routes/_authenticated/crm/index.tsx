@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { UserPlus } from "lucide-react";
 import { dashboardStats } from "@/lib/crm.functions";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
@@ -15,7 +16,15 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-serif text-2xl">Dashboard</h1>
+        <Link
+          to="/onboard"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+        >
+          <UserPlus className="h-4 w-4" /> Onboard New Client
+        </Link>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {STAGES.map((s) => (
           <div key={s} className="rounded-lg border border-border bg-card p-4">
