@@ -5,7 +5,6 @@ import {
   HeartHandshake,
   Home,
   User,
-  FileCheck,
   Phone,
   Printer,
   Mail,
