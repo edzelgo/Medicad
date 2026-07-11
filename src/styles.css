@@ -68,48 +68,49 @@
 
 :root {
   --radius: 0.5rem;
-  /* Navy Trust: deep navy + crisp blues + ice-blue background */
-  --background: oklch(0.94 0.02 250);          /* light ice-blue */
-  --foreground: oklch(0.23 0.09 287);          /* deep navy ink for max readability */
+  /* Medicaid Success brand: royal blue primary + cyan accent, ice-blue background.
+     Sampled from the logo: #1E6FD9 (royal), #5CC7EF (cyan), #0F5FBE (deep). */
+  --background: oklch(0.97 0.015 235);          /* very light ice-blue */
+  --foreground: oklch(0.28 0.10 258);           /* deep royal-navy ink */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.23 0.09 287);
+  --card-foreground: oklch(0.28 0.10 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.23 0.09 287);
-  --primary: oklch(0.34 0.12 280);              /* medium navy — strong contrast on light blue */
-  --primary-foreground: oklch(0.94 0.01 250);
-  --secondary: oklch(0.88 0.03 250);            /* light blue-gray */
-  --secondary-foreground: oklch(0.23 0.09 287);
-  --muted: oklch(0.90 0.03 250);
-  --muted-foreground: oklch(0.45 0.10 275);     /* medium blue — readable secondary copy */
-  --accent: oklch(0.52 0.15 276);               /* bright azure — accent on dark or light */
-  --accent-foreground: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.10 258);
+  --primary: oklch(0.55 0.19 258);              /* royal blue #1E6FD9 */
+  --primary-foreground: oklch(0.98 0.01 240);
+  --secondary: oklch(0.92 0.03 235);            /* pale sky */
+  --secondary-foreground: oklch(0.28 0.10 258);
+  --muted: oklch(0.93 0.02 235);
+  --muted-foreground: oklch(0.45 0.12 258);
+  --accent: oklch(0.78 0.13 233);               /* cyan #5CC7EF */
+  --accent-foreground: oklch(0.20 0.09 258);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.98 0.01 95);
-  --border: oklch(0.80 0.03 250);
-  --input: oklch(0.86 0.02 250);
-  --ring: oklch(0.52 0.15 276);
+  --border: oklch(0.84 0.03 235);
+  --input: oklch(0.88 0.02 235);
+  --ring: oklch(0.55 0.19 258);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.94 0.02 250);
-  --sidebar-foreground: oklch(0.23 0.09 287);
-  --sidebar-primary: oklch(0.34 0.12 280);
-  --sidebar-primary-foreground: oklch(0.94 0.01 250);
-  --sidebar-accent: oklch(0.88 0.03 250);
-  --sidebar-accent-foreground: oklch(0.23 0.09 287);
-  --sidebar-border: oklch(0.80 0.03 250);
-  --sidebar-ring: oklch(0.52 0.15 276);
+  --sidebar: oklch(0.97 0.015 235);
+  --sidebar-foreground: oklch(0.28 0.10 258);
+  --sidebar-primary: oklch(0.55 0.19 258);
+  --sidebar-primary-foreground: oklch(0.98 0.01 240);
+  --sidebar-accent: oklch(0.92 0.03 235);
+  --sidebar-accent-foreground: oklch(0.28 0.10 258);
+  --sidebar-border: oklch(0.84 0.03 235);
+  --sidebar-ring: oklch(0.55 0.19 258);
 
-  /* Legacy aliases preserved for backwards compatibility — now point to the blue palette */
-  --gold: oklch(0.52 0.15 276);                 /* blue alias */
-  --emerald-deep: oklch(0.23 0.09 287);         /* navy alias */
-  --emerald: oklch(0.52 0.15 276);              /* blue alias */
-  --gradient-emerald: linear-gradient(135deg, oklch(0.23 0.09 287), oklch(0.34 0.12 280));
-  --gradient-gold: linear-gradient(135deg, oklch(0.52 0.15 276), oklch(0.42 0.14 275));
-  --shadow-elegant: 0 20px 60px -25px oklch(0.23 0.09 287 / 0.35);
-  --shadow-card: 0 1px 2px oklch(0.23 0.09 287 / 0.04), 0 8px 30px -12px oklch(0.23 0.09 287 / 0.12);
+  /* Legacy aliases — mapped onto the brand palette (cyan + royal blue) */
+  --gold: oklch(0.78 0.13 233);                 /* cyan alias */
+  --emerald-deep: oklch(0.28 0.10 258);         /* deep royal alias */
+  --emerald: oklch(0.55 0.19 258);              /* royal blue alias */
+  --gradient-emerald: linear-gradient(135deg, oklch(0.78 0.13 233), oklch(0.48 0.18 258));
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 233), oklch(0.55 0.19 258));
+  --shadow-elegant: 0 20px 60px -25px oklch(0.28 0.10 258 / 0.35);
+  --shadow-card: 0 1px 2px oklch(0.28 0.10 258 / 0.05), 0 8px 30px -12px oklch(0.28 0.10 258 / 0.12);
 
   --font-serif: "Libre Baskerville", ui-serif, Georgia, serif;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;

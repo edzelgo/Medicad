@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import logoAsset from "@/assets/logo.png.asset.json";
 import {
   Building2,
   HeartHandshake,
   Home,
   User,
-  FileCheck,
   Phone,
   Printer,
   Mail,
@@ -262,14 +262,12 @@ function Index() {
       {/* Nav */}
       <header className="border-b border-border bg-background sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-md bg-gradient-primary flex items-center justify-center">
-              <FileCheck className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-serif text-lg tracking-tight leading-tight text-foreground">
-              Medicaid<br className="hidden sm:inline" />
-              <span className="text-primary">Success</span>
-            </span>
+          <Link to="/" className="flex items-center" aria-label="Medicaid Success — Home">
+            <img
+              src={logoAsset.url}
+              alt="Medicaid Success"
+              className="h-11 w-auto"
+            />
           </Link>
           <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-foreground">
             {navItems.map((n) => (
