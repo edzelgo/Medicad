@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import logoAsset from "@/assets/logo.png.asset.json";
 import {
   Building2,
   HeartHandshake,
