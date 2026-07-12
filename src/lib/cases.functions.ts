@@ -81,6 +81,80 @@ export const createCase = createServerFn({ method: "POST" })
     return { case_id: caseRow.id, case_number: caseRow.case_number, track_id: trackRow.id };
   });
 
+/**
+ * Convert a lead into a full case with an initial workflow track. Bridges the
+ * two previously disconnected systems: the lead is closed with an activity
+ * pointing at the new case.
+ */
+export const convertLeadToCase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    lead_id: z.string().uuid(),
+    workflow: z.string().trim().min(1),
+    case_type: z.enum(["medicaid", "caregiver"]).default("medicaid"),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { data: lead, error: leadErr } = await context.supabase
+      .from("leads").select("*").eq("id", data.lead_id).maybeSingle();
+    if (leadErr) { console.error("[db]", leadErr.message); throw new Error("Operation failed. Please try again."); }
+    if (!lead) throw new Error("Lead not found");
+    if (!lead.first_name || !lead.last_name) {
+      throw new Error("Lead needs a first and last name before it can be converted.");
+    }
+
+    const casePayload = clean({
+      case_type: data.case_type,
+      first_name: lead.first_name,
+      last_name: lead.last_name,
+      dob: lead.dob,
+      ssn: lead.ssn,
+      phone_cell: lead.phone,
+      address1: lead.address,
+      state: lead.state,
+      zip: lead.zip,
+      veteran_status: lead.veteran_status,
+      marital_status: lead.marital_status,
+      spouse_first_name: lead.spouse_first_name,
+      spouse_last_name: lead.spouse_last_name,
+      spouse_dob: lead.spouse_dob,
+      spouse_ssn: lead.spouse_ssn,
+      responsible_party_name: [lead.lri_first_name, lead.lri_last_name].filter(Boolean).join(" ") || null,
+      responsible_party_phone: lead.lri_phone,
+      responsible_party_email: lead.lri_email,
+      transferred_resources_60mo: lead.transferred_resources_60mo,
+      transfer_amount: lead.transfer_amount,
+      brochure_provided: lead.brochure_provided ?? undefined,
+    });
+    casePayload.case_number = genCaseNumber();
+    const { data: caseRow, error: caseErr } = await context.supabase
+      .from("cases").insert(casePayload as never).select("id, case_number").single();
+    if (caseErr) { console.error("[db]", caseErr.message); throw new Error("Operation failed. Please try again."); }
+
+    const trackPayload = clean({
+      ref_source: lead.source,
+      date_received: (lead.created_at ?? "").slice(0, 10) || undefined,
+    });
+    trackPayload.case_id = caseRow.id;
+    trackPayload.workflow = data.workflow;
+    trackPayload.status = "Workflow Created";
+    trackPayload.status_date = new Date().toISOString().slice(0, 10);
+    const { error: trackErr } = await context.supabase
+      .from("case_tracks").insert(trackPayload as never);
+    if (trackErr) { console.error("[db]", trackErr.message); throw new Error("Operation failed. Please try again."); }
+
+    await context.supabase.from("leads")
+      .update({ stage: "closed" }).eq("id", data.lead_id);
+    await context.supabase.from("activities").insert({
+      lead_id: data.lead_id,
+      type: "system",
+      content: `Converted to case #${caseRow.case_number} (${data.workflow}).`,
+      created_by: context.userId,
+    });
+
+    return { case_id: caseRow.id, case_number: caseRow.case_number };
+  });
+
 export const getCaseDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))

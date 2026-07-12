@@ -4,7 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getLead, updateLead, deleteLead, addActivity, myRoles } from "@/lib/crm.functions";
+import { convertLeadToCase } from "@/lib/cases.functions";
+import { useCrmOptions } from "@/hooks/use-crm-options";
 import { IntakeForm } from "@/components/crm/intake-form";
 import { toast } from "sonner";
 
@@ -25,11 +28,18 @@ function LeadDetail() {
   const navigate = useNavigate();
   const { data } = useQuery({ queryKey: ["crm", "lead", id], queryFn: () => get({ data: { id } }) });
   const { data: roles } = useQuery({ queryKey: ["crm", "me"], queryFn: () => me() });
+  const convert = useServerFn(convertLeadToCase);
+  const { options } = useCrmOptions();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertType, setConvertType] = useState<"medicaid" | "caregiver">("medicaid");
+  const [convertWorkflow, setConvertWorkflow] = useState("");
+  const [converting, setConverting] = useState(false);
 
   if (!data) return <div>Loading…</div>;
   const { lead, activities } = data;
+  const convertWorkflows = convertType === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -46,6 +56,7 @@ function LeadDetail() {
           }}>
             {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          <Button variant="outline" onClick={() => setConvertOpen(true)}>Convert to case</Button>
           {roles?.isAdmin && (
             <Button variant="destructive" onClick={async () => {
               if (!confirm("Delete this lead?")) return;
@@ -54,6 +65,55 @@ function LeadDetail() {
           )}
         </div>
       </div>
+
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convert lead to case</DialogTitle>
+            <DialogDescription>
+              Creates a full case with an initial workflow track and closes this lead.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              {(["medicaid", "caregiver"] as const).map((t) => (
+                <button type="button" key={t}
+                  onClick={() => { setConvertType(t); setConvertWorkflow(""); }}
+                  className={`px-3 py-1.5 rounded-md text-sm border capitalize ${convertType === t ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            <select
+              className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+              value={convertWorkflow}
+              onChange={(e) => setConvertWorkflow(e.target.value)}
+            >
+              <option value="">Select workflow…</option>
+              {convertWorkflows.map((w) => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <Button
+              className="w-full"
+              disabled={!convertWorkflow || converting}
+              onClick={async () => {
+                setConverting(true);
+                try {
+                  const res = await convert({ data: { lead_id: id, workflow: convertWorkflow, case_type: convertType } });
+                  toast.success(`Case #${res.case_number} created`);
+                  qc.invalidateQueries({ queryKey: ["crm"] });
+                  navigate({ to: "/crm/cases/$id", params: { id: res.case_id } });
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Conversion failed");
+                } finally {
+                  setConverting(false);
+                }
+              }}
+            >
+              {converting ? "Converting…" : "Create case"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="font-semibold mb-3">Activity</h2>

@@ -1,8 +1,11 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Users, KanbanSquare, FileText, LogOut, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { adminMyAccess } from "@/lib/admin.functions";
+import { adminListPendingRoles } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -22,6 +25,13 @@ const nav = [
 function AdminLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const pendingFn = useServerFn(adminListPendingRoles);
+  const { data: pending } = useQuery({
+    queryKey: ["admin", "pending-roles"],
+    queryFn: () => pendingFn(),
+    refetchInterval: 60_000,
+  });
+  const pendingCount = pending?.length ?? 0;
   return (
     <div className="min-h-screen flex bg-background text-foreground">
       <aside className="w-60 border-r border-border bg-card flex flex-col">
@@ -36,6 +46,11 @@ function AdminLayout() {
             return (
               <Link key={n.to} to={n.to} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}>
                 <Icon className="h-4 w-4" /> {n.label}
+                {n.to === "/admin/users" && pendingCount > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-amber-500 text-white text-[11px] font-bold">
+                    {pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}

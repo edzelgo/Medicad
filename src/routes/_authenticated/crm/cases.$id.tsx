@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { getCaseDetail, updateCaseDemographics, addCaseTrack } from "@/lib/cases.functions";
-import { updateIntakeCase, WORKFLOW_OPTIONS, STATUS_OPTIONS } from "@/lib/intake-dashboard.functions";
+import { updateIntakeCase } from "@/lib/intake-dashboard.functions";
 import { CaseForm, type CaseFormValues } from "@/components/crm/case-form";
-import { CG_WORKFLOW_OPTIONS } from "@/lib/intake-options";
+import { useCrmOptions } from "@/hooks/use-crm-options";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { History, Plus } from "lucide-react";
@@ -27,10 +27,12 @@ function CaseDetail() {
   const [savingDemo, setSavingDemo] = useState(false);
   const [addingTrack, setAddingTrack] = useState(false);
   const [newTrackWorkflow, setNewTrackWorkflow] = useState("");
+  const { options } = useCrmOptions();
 
   if (!data) return <div>Loading…</div>;
   const { case: c, tracks, events } = data;
-  const workflowOptions = c.case_type === "caregiver" ? CG_WORKFLOW_OPTIONS : WORKFLOW_OPTIONS;
+  const workflowOptions = c.case_type === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
+  const statusOptions = c.case_type === "caregiver" ? options.cg_status : options.medicaid_status;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -65,7 +67,7 @@ function CaseDetail() {
                   }}
                 >
                   <option value="">Status —</option>
-                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <input
                   className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"

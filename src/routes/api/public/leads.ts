@@ -7,7 +7,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// Best-effort per-IP rate limit. In-memory, so it resets on redeploy and is
+// per-instance on serverless — still stops naive scripted abuse.
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+const hits = new Map<string, number[]>();
+function rateLimited(ip: string) {
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) {
+    // Drop stale buckets so the map can't grow unbounded.
+    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k);
+  }
+  return recent.length > RATE_LIMIT;
+}
+
 const schema = z.object({
+  // Honeypot: real users never fill this hidden field.
+  website: z.string().optional(),
   full_name: z.string().trim().max(200).optional(),
   first_name: z.string().trim().max(100).optional(),
   last_name: z.string().trim().max(100).optional(),
@@ -38,8 +57,22 @@ export const Route = createFileRoute("/api/public/leads")({
       OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders }),
       POST: async ({ request }) => {
         try {
+          const ip = (request.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+          if (rateLimited(ip)) {
+            return new Response(JSON.stringify({ ok: false, error: "Too many requests. Please try again shortly." }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
           const body = await request.json();
           const data = schema.parse(body);
+          if (data.website) {
+            // Honeypot tripped — pretend success without saving anything.
+            return new Response(JSON.stringify({ ok: true, id: crypto.randomUUID() }), {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
           let first = data.first_name;
           let last = data.last_name;
           if (!first && data.full_name) {
@@ -54,6 +87,23 @@ export const Route = createFileRoute("/api/public/leads")({
           if (data.notes) notesParts.push(data.notes);
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+          // Tag likely repeat submissions so staff see it in the notes.
+          if (data.email || data.phone) {
+            const clauses: string[] = [];
+            const cleanVal = (s: string) => s.replace(/[%,()]/g, "");
+            if (data.email) clauses.push(`email.ilike.${cleanVal(data.email)}`);
+            if (data.phone) clauses.push(`phone.eq.${cleanVal(data.phone)}`);
+            const { data: dupes } = await supabaseAdmin
+              .from("leads").select("id, created_at")
+              .or(clauses.join(","))
+              .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+              .limit(3);
+            if (dupes?.length) {
+              notesParts.push(`Possible duplicate: ${dupes.length} matching lead(s) submitted in the last 30 days.`);
+            }
+          }
+
           const insertPayload: Record<string, unknown> = {
             full_name: data.full_name ?? [first, last].filter(Boolean).join(" "),
             first_name: first ?? null,

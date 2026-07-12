@@ -53,18 +53,71 @@ function cleanLead(input: z.infer<typeof leadInputSchema>) {
   return out;
 }
 
+const listLeadsSchema = z.object({
+  q: z.string().trim().max(200).optional(),
+  stage: stageEnum.optional(),
+  source: z.string().trim().max(150).optional(),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(200).default(50),
+});
+
 export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => listLeadsSchema.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data, error } = await context.supabase
+    const from = (data.page - 1) * data.pageSize;
+    let builder = context.supabase
       .from("leads")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(500);
+      .range(from, from + data.pageSize - 1);
+    if (data.stage) builder = builder.eq("stage", data.stage);
+    if (data.source) builder = builder.eq("source", data.source);
+    if (data.q) {
+      const p = `%${data.q.replace(/[%,]/g, "")}%`;
+      builder = builder.or(
+        `full_name.ilike.${p},first_name.ilike.${p},last_name.ilike.${p},email.ilike.${p},phone.ilike.${p},state.ilike.${p}`,
+      );
+    }
+    const { data: rows, error, count } = await builder;
     if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
-    return data ?? [];
+
+    // Distinct sources for the filter dropdown (lightweight column scan).
+    const { data: sourceRows } = await context.supabase
+      .from("leads").select("source").not("source", "is", null).limit(2000);
+    const sources = Array.from(new Set((sourceRows ?? []).map((r) => r.source).filter(Boolean))) as string[];
+
+    return { rows: rows ?? [], total: count ?? 0, sources: sources.sort() };
   });
+
+/**
+ * Possible duplicates of an intake: same email, same phone, or same
+ * first+last name. Used to warn staff before/after creating a lead.
+ */
+async function findPossibleDuplicates(
+  supabase: Parameters<typeof assertStaff>[0]["supabase"],
+  probe: { email?: string | null; phone?: string | null; first_name?: string; last_name?: string },
+  excludeId?: string,
+) {
+  const clauses: string[] = [];
+  const clean = (s: string) => s.replace(/[%,()]/g, "");
+  if (probe.email) clauses.push(`email.ilike.${clean(probe.email)}`);
+  if (probe.phone) clauses.push(`phone.eq.${clean(probe.phone)}`);
+  if (probe.first_name && probe.last_name) {
+    clauses.push(`and(first_name.ilike.${clean(probe.first_name)},last_name.ilike.${clean(probe.last_name)})`);
+  }
+  if (!clauses.length) return [];
+  let builder = supabase
+    .from("leads")
+    .select("id, full_name, first_name, last_name, email, phone, stage, created_at")
+    .or(clauses.join(","))
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (excludeId) builder = builder.neq("id", excludeId);
+  const { data } = await builder;
+  return data ?? [];
+}
 
 export const getLead = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -90,13 +143,29 @@ export const createLead = createServerFn({ method: "POST" })
     payload.assigned_to = context.userId;
     payload.full_name = `${data.first_name} ${data.last_name}`.trim();
     payload.source = (payload.source as string | undefined) ?? "manual";
+
+    const possibleDuplicates = await findPossibleDuplicates(context.supabase, {
+      email: data.email, phone: data.phone,
+      first_name: data.first_name, last_name: data.last_name,
+    });
+
     const { data: row, error } = await context.supabase
       .from("leads").insert(payload as never).select().single();
     if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     await context.supabase.from("activities").insert({
       lead_id: row.id, type: "intake", content: "Intake submitted.", created_by: context.userId,
     });
-    return row;
+    if (possibleDuplicates.length) {
+      await context.supabase.from("activities").insert({
+        lead_id: row.id,
+        type: "system",
+        content: `Possible duplicate of: ${possibleDuplicates
+          .map((d) => d.full_name || `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || d.id.slice(0, 8))
+          .join(", ")}`,
+        created_by: context.userId,
+      });
+    }
+    return { ...row, possibleDuplicates };
   });
 
 export const updateLead = createServerFn({ method: "POST" })
@@ -107,16 +176,27 @@ export const updateLead = createServerFn({ method: "POST" })
     const patch = cleanLead(data.patch as never);
     if (data.patch.stage) patch.stage = data.patch.stage;
     if (data.patch.assigned_to !== undefined) patch.assigned_to = data.patch.assigned_to;
-    let prevStage: string | undefined;
-    if (data.patch.stage) {
-      const { data: prev } = await context.supabase
-        .from("leads").select("stage").eq("id", data.id).maybeSingle();
-      prevStage = prev?.stage;
+
+    const needsPrev = !!data.patch.stage || data.patch.assigned_to !== undefined;
+    let prev: {
+      stage: string; assigned_to: string | null; first_name: string | null; full_name: string | null;
+      email: string | null; phone: string | null; sms_consent: boolean;
+    } | null = null;
+    if (needsPrev) {
+      const { data: prevRow } = await context.supabase
+        .from("leads")
+        .select("stage, assigned_to, first_name, full_name, email, phone, sms_consent")
+        .eq("id", data.id).maybeSingle();
+      prev = prevRow ?? null;
     }
+    const prevStage = prev?.stage;
+
     const { error } = await context.supabase
       .from("leads").update(patch as never).eq("id", data.id);
     if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
-    if (data.patch.stage && prevStage !== data.patch.stage) {
+
+    const stageChanged = !!data.patch.stage && prevStage !== data.patch.stage;
+    if (stageChanged) {
       await context.supabase.from("activities").insert({
         lead_id: data.id,
         type: "stage_change",
@@ -124,6 +204,38 @@ export const updateLead = createServerFn({ method: "POST" })
         created_by: context.userId,
       });
     }
+
+    // Notifications are best-effort — never fail the update because of them.
+    try {
+      const notify = await import("@/lib/notify.server");
+      if (stageChanged && prev) {
+        await notify.notifyLeadStageChange({
+          firstName: prev.first_name,
+          email: prev.email,
+          phone: prev.phone,
+          smsConsent: !!prev.sms_consent,
+          stage: data.patch.stage!,
+        });
+      }
+      const newAgent = data.patch.assigned_to;
+      if (newAgent && newAgent !== prev?.assigned_to && newAgent !== context.userId) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: agentUser } = await supabaseAdmin.auth.admin.getUserById(newAgent);
+        const { data: agentProfile } = await supabaseAdmin
+          .from("profiles").select("full_name").eq("id", newAgent).maybeSingle();
+        if (agentUser?.user?.email) {
+          await notify.notifyLeadAssigned({
+            agentEmail: agentUser.user.email,
+            agentName: agentProfile?.full_name ?? null,
+            leadName: prev?.full_name || prev?.first_name || "New lead",
+            leadId: data.id,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[notify]", e instanceof Error ? e.message : e);
+    }
+
     return { ok: true };
   });
 
@@ -131,7 +243,8 @@ export const deleteLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Only admins can delete leads.");
     const { error } = await context.supabase.from("leads").delete().eq("id", data.id);
     if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     return { ok: true };

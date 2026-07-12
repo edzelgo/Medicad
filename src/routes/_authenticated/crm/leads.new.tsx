@@ -20,7 +20,12 @@ function NewLead() {
         setBusy(true);
         try {
           const row = await create({ data: v as never });
-          toast.success("Lead created");
+          const dupes = (row as { possibleDuplicates?: unknown[] }).possibleDuplicates ?? [];
+          if (dupes.length) {
+            toast.warning(`Lead created — ${dupes.length} possible duplicate(s) found. Check the lead's activity log.`, { duration: 8000 });
+          } else {
+            toast.success("Lead created");
+          }
           navigate({ to: "/crm/leads/$id", params: { id: (row as { id: string }).id } });
         } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } finally { setBusy(false); }
       }} />

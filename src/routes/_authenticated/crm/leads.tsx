@@ -1,47 +1,57 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { listLeads, createLead } from "@/lib/crm.functions";
 import { IntakeForm } from "@/components/crm/intake-form";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/leads")({
   component: LeadsList,
 });
 
+const STAGES = ["new","intake","screening","application","submitted","approved","denied","closed"] as const;
+const PAGE_SIZE = 50;
+
 function LeadsList() {
   const fn = useServerFn(listLeads);
   const qc = useQueryClient();
   const create = useServerFn(createLead);
-  const { data } = useQuery({ queryKey: ["crm", "leads"], queryFn: () => fn() });
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [stage, setStage] = useState("");
   const [source, setSource] = useState("");
+  const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const rows = useMemo(() => {
-    const list = data ?? [];
-    const filtered = list.filter((l) => {
-      if (stage && l.stage !== stage) return false;
-      if (source && (l.source ?? "") !== source) return false;
-      if (!q) return true;
-      const s = q.toLowerCase();
-      return [l.full_name, l.first_name, l.last_name, l.email, l.phone, l.state, l.source]
-        .some((x) => x?.toLowerCase().includes(s));
-    });
-    return [...filtered].sort((a, b) => {
-      const t = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      if (t !== 0) return t;
-      return (a.full_name ?? "").localeCompare(b.full_name ?? "");
-    });
-  }, [data, q, stage, source]);
-  const total = data?.length ?? 0;
-  const resetFilters = () => { setQ(""); setStage(""); setSource(""); };
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedQ(q); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const args = {
+    q: debouncedQ || undefined,
+    stage: (stage || undefined) as typeof STAGES[number] | undefined,
+    source: source || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+  };
+  const { data, isFetching } = useQuery({
+    queryKey: ["crm", "leads", args],
+    queryFn: () => fn({ data: args }),
+    placeholderData: keepPreviousData,
+  });
+
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
+  const sources = data?.sources ?? [];
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const resetFilters = () => { setQ(""); setStage(""); setSource(""); setPage(1); };
 
   return (
     <div className="space-y-4">
@@ -55,7 +65,12 @@ function LeadsList() {
               setBusy(true);
               try {
                 const row = await create({ data: v as never });
-                toast.success("Lead created");
+                const dupes = (row as { possibleDuplicates?: unknown[] }).possibleDuplicates ?? [];
+                if (dupes.length) {
+                  toast.warning(`Lead created — ${dupes.length} possible duplicate(s) found. Check the lead's activity log.`, { duration: 8000 });
+                } else {
+                  toast.success("Lead created");
+                }
                 setOpen(false);
                 qc.invalidateQueries({ queryKey: ["crm"] });
                 window.location.href = `/crm/leads/${(row as { id: string }).id}`;
@@ -65,18 +80,21 @@ function LeadsList() {
         </Dialog>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Input placeholder="Search name, email, phone…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
-        <select className="border border-input rounded-md px-3 text-sm bg-background" value={stage} onChange={(e) => setStage(e.target.value)}>
+        <select className="border border-input rounded-md px-3 text-sm bg-background" value={stage} onChange={(e) => { setStage(e.target.value); setPage(1); }}>
           <option value="">All stages</option>
-          {["new","intake","screening","application","submitted","approved","denied","closed"].map((s) => <option key={s}>{s}</option>)}
+          {STAGES.map((s) => <option key={s}>{s}</option>)}
         </select>
-        <select className="border border-input rounded-md px-3 text-sm bg-background" value={source} onChange={(e) => setSource(e.target.value)}>
+        <select className="border border-input rounded-md px-3 text-sm bg-background" value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }}>
           <option value="">All sources</option>
-          {Array.from(new Set((data ?? []).map((l) => l.source ?? "").filter(Boolean))).map((s) => <option key={s} value={s}>{s}</option>)}
+          {sources.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <Button variant="outline" onClick={resetFilters}>Reset filters</Button>
-        <span className="ml-auto self-center text-xs text-muted-foreground">Showing {rows.length} of {total}</span>
+        <span className="ml-auto self-center text-xs text-muted-foreground">
+          {isFetching && <Loader2 className="h-3 w-3 inline animate-spin mr-1" />}
+          {total} lead{total === 1 ? "" : "s"} · page {page} of {totalPages}
+        </span>
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -96,9 +114,24 @@ function LeadsList() {
                 <td className="p-3">{new Date(l.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No leads.</td></tr>}
+            {!rows.length && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No leads match.</td></tr>}
           </tbody>
         </table>
+        <div className="flex items-center justify-end gap-1 p-3 border-t border-border text-xs">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="h-8 px-2 rounded border border-border hover:bg-muted disabled:opacity-40 inline-flex items-center">
+            <ChevronLeft className="h-3.5 w-3.5" /> Prev
+          </button>
+          <span className="px-2 text-muted-foreground">{page} / {totalPages}</span>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="h-8 px-2 rounded border border-border hover:bg-muted disabled:opacity-40 inline-flex items-center">
+            Next <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

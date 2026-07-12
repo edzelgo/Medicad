@@ -3,11 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WORKFLOW_OPTIONS } from "@/lib/intake-dashboard.functions";
 import {
-  CG_WORKFLOW_OPTIONS, VETERAN_STATUS_OPTIONS, MARITAL_STATUS_OPTIONS,
   MEDICAID_ASSET_REQUIREMENT_OPTIONS, BROCHURE_PROVIDED_OPTIONS, REFERRAL_SOURCE_TYPE_OPTIONS,
 } from "@/lib/intake-options";
+import { useCrmOptions } from "@/hooks/use-crm-options";
 
 export type CaseFormValues = {
   case_type: "medicaid" | "caregiver";
@@ -40,7 +39,8 @@ export function CaseForm({
     ...initial,
   } as NewCaseValues);
   const set = <K extends keyof NewCaseValues>(k: K, val: NewCaseValues[K]) => setV((s) => ({ ...s, [k]: val }));
-  const workflowOptions = v.case_type === "caregiver" ? CG_WORKFLOW_OPTIONS : WORKFLOW_OPTIONS;
+  const { options } = useCrmOptions();
+  const workflowOptions = v.case_type === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
 
   return (
     <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSubmit(v); }}>
@@ -83,10 +83,10 @@ export function CaseForm({
       <Section title="Household">
         <Grid>
           <Field label="Veteran status">
-            <SelectInput value={v.veteran_status} onChange={(x) => set("veteran_status", x)} options={[...VETERAN_STATUS_OPTIONS]} />
+            <SelectInput value={v.veteran_status} onChange={(x) => set("veteran_status", x)} options={[...options.veteran_status]} />
           </Field>
           <Field label="Marital status">
-            <SelectInput value={v.marital_status} onChange={(x) => set("marital_status", x)} options={[...MARITAL_STATUS_OPTIONS]} />
+            <SelectInput value={v.marital_status} onChange={(x) => set("marital_status", x)} options={[...options.marital_status]} />
           </Field>
         </Grid>
         {v.marital_status === "Married" && (

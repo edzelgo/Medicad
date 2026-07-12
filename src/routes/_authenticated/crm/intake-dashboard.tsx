@@ -9,13 +9,12 @@ import {
   bulkUpdateIntakeCases,
   exportIntakeCases,
   listIntakeCaseEvents,
-  WORKFLOW_OPTIONS,
-  STATUS_OPTIONS,
   type IntakeCase,
   type IntakeListResult,
   type IntakeCaseEvent,
   type IntakeExportRow,
 } from "@/lib/intake-dashboard.functions";
+import { useCrmOptions } from "@/hooks/use-crm-options";
 import { Input } from "@/components/ui/input";
 import {
   Filter, FileText, Loader2, X, History, Download, ChevronLeft, ChevronRight,
@@ -83,6 +82,14 @@ function IntakeDashboard() {
   const totalAll = data?.totalAll ?? 0;
   const agents = data?.agents ?? [];
   const workflowStats = data?.workflowStats ?? {};
+
+  const { options } = useCrmOptions();
+  // Options scoped to a row's case type; tab-level pickers follow the active tab.
+  const optsFor = (caseType: string | null | undefined) =>
+    caseType === "caregiver"
+      ? { wf: options.cg_workflow, st: options.cg_status }
+      : { wf: options.medicaid_workflow, st: options.medicaid_status };
+  const tabOpts = optsFor(search.caseType);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -302,7 +309,7 @@ function IntakeDashboard() {
             className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="">All Statuses</option>
-            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            {tabOpts.st.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
         <label className="text-[11px] text-muted-foreground space-y-1">
@@ -358,7 +365,7 @@ function IntakeDashboard() {
             <select value={bulkWorkflow} onChange={(e) => setBulkWorkflow(e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm">
               <option value="">—</option>
-              {WORKFLOW_OPTIONS.map((w) => <option key={w} value={w}>{w}</option>)}
+              {tabOpts.wf.map((w) => <option key={w} value={w}>{w}</option>)}
             </select>
           </label>
           <label className="flex items-center gap-2 text-xs">
@@ -366,7 +373,7 @@ function IntakeDashboard() {
             <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm">
               <option value="">—</option>
-              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              {tabOpts.st.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
           <button
@@ -448,7 +455,7 @@ function IntakeDashboard() {
                         WORKFLOW_COLORS[c.workflow ?? ""] ?? "border-border"
                       }`}>
                       <option value="">—</option>
-                      {WORKFLOW_OPTIONS.map((w) => <option key={w} value={w}>{w}</option>)}
+                      {optsFor(c.case_type).wf.map((w) => <option key={w} value={w}>{w}</option>)}
                     </select>
                   </td>
                   <td className="p-2" onClick={(e) => e.stopPropagation()}>
@@ -456,7 +463,7 @@ function IntakeDashboard() {
                       onChange={(e) => mutation.mutate({ id: c.id, status: e.target.value || null })}
                       className="text-xs px-1.5 py-1 rounded border border-border bg-transparent font-semibold">
                       <option value="">—</option>
-                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {optsFor(c.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
                   <td className="p-2 text-xs">{c.agent ?? "—"}</td>
@@ -546,7 +553,7 @@ function IntakeDashboard() {
                       onChange={(e) => mutation.mutate({ id: selected.id, workflow: e.target.value || null })}
                       className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm">
                       <option value="">—</option>
-                      {WORKFLOW_OPTIONS.map((w) => <option key={w} value={w}>{w}</option>)}
+                      {optsFor(selected.case_type).wf.map((w) => <option key={w} value={w}>{w}</option>)}
                     </select>
                   </label>
                   <label className="text-xs space-y-1">
@@ -555,7 +562,7 @@ function IntakeDashboard() {
                       onChange={(e) => mutation.mutate({ id: selected.id, status: e.target.value || null })}
                       className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm">
                       <option value="">—</option>
-                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {optsFor(selected.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </label>
                 </div>
