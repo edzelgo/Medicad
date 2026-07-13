@@ -9,10 +9,11 @@ import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority,
 import { convertLeadToCase } from "@/lib/cases.functions";
 import { listLeadCommunications } from "@/lib/communications.functions";
 import { listReferralOrgs, setLeadReferralOrg } from "@/lib/referrals.functions";
+import { listLeadCalls, logCall, startCall, CALL_OUTCOMES, CALL_OUTCOME_LABEL } from "@/lib/calls.functions";
 import { useCrmOptions } from "@/hooks/use-crm-options";
 import { computeLeadScore } from "@/lib/lead-scoring";
 import { IntakeForm } from "@/components/crm/intake-form";
-import { Mail, MessageSquare } from "lucide-react";
+import { Mail, MessageSquare, Phone, PhoneCall } from "lucide-react";
 import { toast } from "sonner";
 
 const PRIORITY_STYLE: Record<string, string> = {
@@ -86,7 +87,12 @@ function LeadDetail() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-2xl">{lead.full_name || `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || "Lead"}</h1>
-          <p className="text-sm text-muted-foreground">{lead.email ?? ""} {lead.phone ? `• ${lead.phone}` : ""}</p>
+          <p className="text-sm text-muted-foreground">
+            {lead.email ?? ""}
+            {lead.phone && (
+              <> • <a href={`tel:${lead.phone}`} className="text-primary hover:underline">{lead.phone}</a></>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -287,6 +293,8 @@ function LeadDetail() {
         </div>
       </div>
 
+      <CallsPanel leadId={id} phone={lead.phone ?? null} />
+
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="font-semibold mb-3">Activity</h2>
         <div className="flex gap-2 mb-4">
@@ -339,6 +347,91 @@ function LeadDetail() {
           toast.success("Lead saved");
         }}
       />
+    </div>
+  );
+}
+
+function CallsPanel({ leadId, phone }: { leadId: string; phone: string | null }) {
+  const listFn = useServerFn(listLeadCalls);
+  const logFn = useServerFn(logCall);
+  const startFn = useServerFn(startCall);
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["crm", "lead", leadId, "calls"],
+    queryFn: () => listFn({ data: { lead_id: leadId } }),
+  });
+  const [outcome, setOutcome] = useState<(typeof CALL_OUTCOMES)[number]>("connected");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const calls = data?.calls ?? [];
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["crm", "lead", leadId, "calls"] });
+    qc.invalidateQueries({ queryKey: ["crm", "lead", leadId] });
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <h2 className="font-semibold">Calls</h2>
+        <div className="flex items-center gap-2">
+          {phone && (
+            <a href={`tel:${phone}`} className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted">
+              <Phone className="h-3.5 w-3.5" /> Dial {phone}
+            </a>
+          )}
+          {data?.twilioAvailable && phone && (
+            <Button size="sm" disabled={busy} onClick={async () => {
+              setBusy(true);
+              try {
+                await startFn({ data: { lead_id: leadId } });
+                toast.success("Calling… your phone will ring, then connect to the lead.");
+                refresh();
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Call failed"); } finally { setBusy(false); }
+            }}>
+              <PhoneCall className="h-3.5 w-3.5 mr-1.5" /> Call via Twilio
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <form
+        className="flex flex-wrap items-end gap-2 mb-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await logFn({ data: { lead_id: leadId, direction: "outbound", outcome, notes: notes || undefined } });
+            setNotes("");
+            toast.success("Call logged");
+            refresh();
+          } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); } finally { setBusy(false); }
+        }}
+      >
+        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={outcome} onChange={(e) => setOutcome(e.target.value as typeof outcome)}>
+          {CALL_OUTCOMES.map((o) => <option key={o} value={o}>{CALL_OUTCOME_LABEL[o]}</option>)}
+        </select>
+        <input className="h-9 rounded-md border border-input bg-background px-2 text-sm flex-1 min-w-[180px]"
+          placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Button type="submit" size="sm" variant="outline" disabled={busy}>Log call</Button>
+      </form>
+
+      <ul className="space-y-2">
+        {calls.map((c) => (
+          <li key={c.id} className="text-sm border-l-2 border-primary/40 pl-3">
+            <div className="flex items-center gap-1.5 font-medium">
+              <PhoneCall className="h-3 w-3" />
+              {c.direction === "inbound" ? "Inbound" : "Outbound"}
+              {c.outcome ? ` — ${CALL_OUTCOME_LABEL[c.outcome] ?? c.outcome}` : ""}
+              {c.provider === "twilio" && <span className="text-xs text-muted-foreground">(Twilio)</span>}
+            </div>
+            {c.notes && <div className="text-muted-foreground">{c.notes}</div>}
+            <div className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
+          </li>
+        ))}
+        {!calls.length && <li className="text-sm text-muted-foreground">No calls logged yet.</li>}
+      </ul>
     </div>
   );
 }

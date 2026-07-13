@@ -131,6 +131,41 @@ export async function sendSms(to: string, body: string): Promise<boolean> {
   }
 }
 
+export function twilioVoiceConfigured() {
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
+}
+
+export function twilioFrom() {
+  return process.env.TWILIO_FROM ?? "";
+}
+
+/**
+ * Place an outbound call via Twilio using inline TwiML (no hosted webhook
+ * required). No-op when Twilio Voice isn't configured. Never throws.
+ */
+export async function placeCall(to: string, twiml: string): Promise<{ sid: string } | null> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM;
+  if (!sid || !token || !from || !to) return null;
+  try {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ To: to, From: from, Twiml: twiml }).toString(),
+    });
+    if (!res.ok) { console.error("[notify:call]", res.status, await res.text().catch(() => "")); return null; }
+    const j = await res.json() as { sid?: string };
+    return j.sid ? { sid: j.sid } : null;
+  } catch (err) {
+    console.error("[notify:call]", err);
+    return null;
+  }
+}
+
 const STAGE_LABEL: Record<string, string> = {
   new: "Received", intake: "Intake", screening: "Screening", application: "Application in Progress",
   submitted: "Submitted", approved: "Approved", denied: "Denied", closed: "Closed",
