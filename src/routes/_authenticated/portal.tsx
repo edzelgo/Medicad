@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ReadabilityToggle } from "@/components/readability-toggle";
 import { SupportChatbot } from "@/components/support-chatbot";
+import { ClientAnnouncements, ClientMessages } from "@/components/portal/client-messaging";
 import { toast } from "sonner";
 import {
   Upload, FileText, Trash2, Download, FilePlus2, Combine, LogOut,
@@ -385,6 +386,7 @@ function PortalPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10 space-y-10">
+        <ClientAnnouncements />
         {/* Hero summary */}
         <section className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 rounded-xl p-8 bg-card border border-border shadow-[var(--shadow-elegant)]">
@@ -713,6 +715,7 @@ function PortalPage() {
         <div className="text-center text-xs text-muted-foreground py-6 flex items-center justify-center gap-1.5">
           <Sparkles className="h-3 w-3 text-accent" /> Files are encrypted in transit and at rest. Only you and your specialist can access them.
         </div>
+        <ClientMessages />
       </main>
       <SupportChatbot role={(role === "agent" || role === "referral") ? role : "client"} />
     </div>
