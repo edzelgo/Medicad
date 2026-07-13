@@ -134,6 +134,7 @@ const updateSchema = z.object({
   id: z.string().uuid(),
   workflow: z.string().min(1).nullable().optional(),
   status: z.string().min(1).nullable().optional(),
+  status_reason: z.string().max(500).nullable().optional(),
   agent: z.string().nullable().optional(),
   follow_up_date: z.string().nullable().optional(),
 });
@@ -147,6 +148,7 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
       workflow?: string | null;
       status?: string | null;
       status_date?: string;
+      status_reason?: string | null;
       agent?: string | null;
       follow_up_date?: string | null;
     } = {};
@@ -154,13 +156,21 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
     if (data.status !== undefined) {
       patch.status = data.status;
       patch.status_date = new Date().toISOString().slice(0, 10);
+      // status_reason column exists only after the migration — only set it when
+      // provided so an older schema keeps working.
+      if (data.status_reason !== undefined) patch.status_reason = data.status_reason;
     }
     if (data.agent !== undefined) patch.agent = data.agent;
     if (data.follow_up_date !== undefined) patch.follow_up_date = data.follow_up_date;
-    const { error } = await context.supabase
+    let { error } = await context.supabase
       .from("case_tracks")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id);
+    if (error && /status_reason/i.test(error.message)) {
+      // Retry without the not-yet-migrated column.
+      delete patch.status_reason;
+      ({ error } = await context.supabase.from("case_tracks").update(patch as never).eq("id", data.id));
+    }
     if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
     const { data: row, error: viewErr } = await context.supabase
       .from("intake_case_view")
@@ -168,6 +178,44 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     if (viewErr) { console.error("[db]", viewErr.message); throw new Error("Operation failed. Please try again."); }
+
+    // Group B #20 — notify the case contact when the status changes. Best-effort.
+    if (data.status) {
+      try {
+        const { data: track } = await context.supabase
+          .from("case_tracks").select("case_id").eq("id", data.id).maybeSingle();
+        if (track?.case_id) {
+          const { data: caseRow } = await context.supabase
+            .from("cases")
+            .select("first_name, responsible_party_email")
+            .eq("id", track.case_id).maybeSingle();
+          const email = caseRow?.responsible_party_email;
+          if (email) {
+            const notify = await import("@/lib/notify.server");
+            const ok = await notify.sendEmail(
+              [email],
+              `Case update: ${data.status}`,
+              notify.brandedEmailHtml({
+                heading: "Case status update",
+                bodyLines: [
+                  `Hi ${caseRow?.first_name ?? "there"},`,
+                  `The status of your case is now: ${data.status}.`,
+                  ...(data.status_reason ? [`Note: ${data.status_reason}`] : []),
+                  "Your specialist will reach out with any next steps.",
+                ],
+              }),
+            );
+            await notify.logComm({
+              channel: "email", kind: "stage_change", recipient: email,
+              subject: `Case update: ${data.status}`,
+              bodyPreview: data.status_reason ?? data.status, success: ok, createdBy: context.userId,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[notify:case]", e instanceof Error ? e.message : e);
+      }
+    }
     return row as IntakeCase;
   });
 

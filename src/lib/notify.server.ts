@@ -12,6 +12,42 @@ export function getSiteUrl() {
   return process.env.SITE_URL ?? "https://medicaidsuccess.com";
 }
 
+type CommKind = "stage_change" | "assignment" | "doc_reminder" | "followup_digest" | "manual";
+
+/**
+ * Record a sent (or attempted) communication for audit + per-lead history.
+ * Best-effort: a missing communications_log table (migration not applied yet)
+ * or any insert error is swallowed so it never affects the caller.
+ */
+export async function logComm(entry: {
+  channel: "email" | "sms";
+  kind: CommKind;
+  recipient: string;
+  subject?: string | null;
+  bodyPreview?: string | null;
+  success: boolean;
+  error?: string | null;
+  leadId?: string | null;
+  createdBy?: string | null;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await (supabaseAdmin.from as (t: string) => any)("communications_log").insert({
+      channel: entry.channel,
+      kind: entry.kind,
+      recipient: entry.recipient,
+      subject: entry.subject ?? null,
+      body_preview: entry.bodyPreview ? entry.bodyPreview.slice(0, 300) : null,
+      success: entry.success,
+      error: entry.error ?? null,
+      lead_id: entry.leadId ?? null,
+      created_by: entry.createdBy ?? null,
+    });
+  } catch (err) {
+    console.error("[notify:log]", err instanceof Error ? err.message : err);
+  }
+}
+
 function escapeHtml(s: string) {
   return String(s ?? "")
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -111,14 +147,16 @@ export async function notifyLeadStageChange(opts: {
   phone: string | null;
   smsConsent: boolean;
   stage: string;
+  leadId?: string | null;
+  actorId?: string | null;
 }) {
   const label = STAGE_LABEL[opts.stage] ?? opts.stage;
   const portalUrl = `${getSiteUrl()}/portal`;
-  const tasks: Promise<boolean>[] = [];
   if (opts.email) {
-    tasks.push(sendEmail(
+    const subject = `Your application status: ${label}`;
+    const ok = await sendEmail(
       [opts.email],
-      `Your application status: ${label}`,
+      subject,
       brandedEmailHtml({
         heading: "Application status update",
         bodyLines: [
@@ -129,15 +167,20 @@ export async function notifyLeadStageChange(opts: {
         ctaLabel: "Open my portal",
         ctaUrl: portalUrl,
       }),
-    ));
+    );
+    await logComm({
+      channel: "email", kind: "stage_change", recipient: opts.email, subject,
+      bodyPreview: `Status is now: ${label}`, success: ok, leadId: opts.leadId, createdBy: opts.actorId,
+    });
   }
   if (opts.smsConsent && opts.phone) {
-    tasks.push(sendSms(
-      opts.phone,
-      `Medicaid Success: your application status was updated. Log in to your portal for details: ${portalUrl}. Reply STOP to opt out.`,
-    ));
+    const body = `Medicaid Success: your application status was updated. Log in to your portal for details: ${portalUrl}. Reply STOP to opt out.`;
+    const ok = await sendSms(opts.phone, body);
+    await logComm({
+      channel: "sms", kind: "stage_change", recipient: opts.phone,
+      bodyPreview: body, success: ok, leadId: opts.leadId, createdBy: opts.actorId,
+    });
   }
-  await Promise.allSettled(tasks);
 }
 
 /** Notify a staff member that a lead was assigned to them. */
@@ -146,10 +189,12 @@ export async function notifyLeadAssigned(opts: {
   agentName: string | null;
   leadName: string;
   leadId: string;
+  actorId?: string | null;
 }) {
-  await sendEmail(
+  const subject = `New lead assigned: ${opts.leadName}`;
+  const ok = await sendEmail(
     [opts.agentEmail],
-    `New lead assigned: ${opts.leadName}`,
+    subject,
     brandedEmailHtml({
       heading: "A lead was assigned to you",
       bodyLines: [
@@ -161,4 +206,8 @@ export async function notifyLeadAssigned(opts: {
       ctaUrl: `${getSiteUrl()}/crm/leads/${opts.leadId}`,
     }),
   );
+  await logComm({
+    channel: "email", kind: "assignment", recipient: opts.agentEmail, subject,
+    bodyPreview: `${opts.leadName} assigned`, success: ok, leadId: opts.leadId, createdBy: opts.actorId,
+  });
 }

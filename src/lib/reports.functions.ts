@@ -105,6 +105,48 @@ export const reportFollowUp = createServerFn({ method: "GET" })
     return { rows: withOverdue, total: withOverdue.length, overdueCount: withOverdue.filter((r) => r.overdue).length };
   });
 
+/**
+ * Group D #47 — referral-source conversion analytics. Buckets leads by source
+ * and computes won/lost/in-progress + a conversion rate, so marketing spend
+ * can be judged by outcome rather than raw volume.
+ */
+export const reportSourceConversion = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => dateRangeSchema.pick({ dateFrom: true, dateTo: true }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    let builder = context.supabase
+      .from("leads")
+      .select("source, stage, created_at")
+      .limit(5000);
+    if (data.dateFrom) builder = builder.gte("created_at", data.dateFrom);
+    if (data.dateTo) builder = builder.lte("created_at", data.dateTo);
+    const { data: rows, error } = await builder;
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
+
+    type Bucket = { source: string; total: number; won: number; lost: number; inProgress: number; conversion: number };
+    const map = new Map<string, Bucket>();
+    for (const r of rows ?? []) {
+      const key = r.source || "Unknown";
+      const b = map.get(key) ?? { source: key, total: 0, won: 0, lost: 0, inProgress: 0, conversion: 0 };
+      b.total++;
+      if (r.stage === "approved") b.won++;
+      else if (r.stage === "denied" || r.stage === "closed") b.lost++;
+      else b.inProgress++;
+      map.set(key, b);
+    }
+    const buckets = Array.from(map.values()).map((b) => ({
+      ...b,
+      conversion: b.total ? Math.round((b.won / b.total) * 100) : 0,
+    })).sort((a, b) => b.total - a.total);
+
+    const totals = buckets.reduce(
+      (acc, b) => ({ total: acc.total + b.total, won: acc.won + b.won, lost: acc.lost + b.lost, inProgress: acc.inProgress + b.inProgress }),
+      { total: 0, won: 0, lost: 0, inProgress: 0 },
+    );
+    return { buckets, totals, conversion: totals.total ? Math.round((totals.won / totals.total) * 100) : 0 };
+  });
+
 /** Activity Log report: a global feed of case_tracks changes across all cases. */
 export const reportActivityLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

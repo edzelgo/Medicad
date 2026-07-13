@@ -15,6 +15,13 @@ export const Route = createFileRoute("/_authenticated/crm/leads")({
 });
 
 const STAGES = ["new","intake","screening","application","submitted","approved","denied","closed"] as const;
+const PRIORITIES = ["low","normal","high","urgent"] as const;
+const PRIORITY_STYLE: Record<string, string> = {
+  urgent: "bg-red-100 text-red-800",
+  high: "bg-amber-100 text-amber-800",
+  normal: "bg-secondary text-secondary-foreground",
+  low: "bg-muted text-muted-foreground",
+};
 const PAGE_SIZE = 50;
 
 function LeadsList() {
@@ -25,6 +32,7 @@ function LeadsList() {
   const [debouncedQ, setDebouncedQ] = useState("");
   const [stage, setStage] = useState("");
   const [source, setSource] = useState("");
+  const [priority, setPriority] = useState("");
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,6 +46,7 @@ function LeadsList() {
     q: debouncedQ || undefined,
     stage: (stage || undefined) as typeof STAGES[number] | undefined,
     source: source || undefined,
+    priority: (priority || undefined) as typeof PRIORITIES[number] | undefined,
     page,
     pageSize: PAGE_SIZE,
   };
@@ -51,7 +60,7 @@ function LeadsList() {
   const total = data?.total ?? 0;
   const sources = data?.sources ?? [];
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const resetFilters = () => { setQ(""); setStage(""); setSource(""); setPage(1); };
+  const resetFilters = () => { setQ(""); setStage(""); setSource(""); setPriority(""); setPage(1); };
 
   return (
     <div className="space-y-4">
@@ -90,6 +99,10 @@ function LeadsList() {
           <option value="">All sources</option>
           {sources.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select className="border border-input rounded-md px-3 text-sm bg-background capitalize" value={priority} onChange={(e) => { setPriority(e.target.value); setPage(1); }}>
+          <option value="">All priorities</option>
+          {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
         <Button variant="outline" onClick={resetFilters}>Reset filters</Button>
         <span className="ml-auto self-center text-xs text-muted-foreground">
           {isFetching && <Loader2 className="h-3 w-3 inline animate-spin mr-1" />}
@@ -100,12 +113,18 @@ function LeadsList() {
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground text-xs uppercase">
-            <tr><th className="text-left p-3">Name</th><th className="text-left p-3">Email</th><th className="text-left p-3">Phone</th><th className="text-left p-3">State</th><th className="text-left p-3">Stage</th><th className="text-left p-3">Source</th><th className="text-left p-3">Created</th></tr>
+            <tr><th className="text-left p-3">Name</th><th className="text-left p-3">Priority</th><th className="text-left p-3">Email</th><th className="text-left p-3">Phone</th><th className="text-left p-3">State</th><th className="text-left p-3">Stage</th><th className="text-left p-3">Source</th><th className="text-left p-3">Created</th></tr>
           </thead>
           <tbody>
             {rows.map((l) => (
               <tr key={l.id} className="border-t border-border hover:bg-muted/50">
                 <td className="p-3"><Link to="/crm/leads/$id" params={{ id: l.id }} className="hover:underline font-medium">{l.full_name || `${l.first_name ?? ""} ${l.last_name ?? ""}`.trim() || "—"}</Link></td>
+                <td className="p-3">
+                  {(() => {
+                    const p = (l as { priority?: string }).priority ?? "normal";
+                    return <span className={`px-2 py-0.5 rounded text-xs capitalize ${PRIORITY_STYLE[p] ?? PRIORITY_STYLE.normal}`}>{p}</span>;
+                  })()}
+                </td>
                 <td className="p-3">{l.email ?? "—"}</td>
                 <td className="p-3">{l.phone ?? "—"}</td>
                 <td className="p-3">{l.state ?? "—"}</td>
@@ -114,7 +133,7 @@ function LeadsList() {
                 <td className="p-3">{new Date(l.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No leads match.</td></tr>}
+            {!rows.length && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No leads match.</td></tr>}
           </tbody>
         </table>
         <div className="flex items-center justify-end gap-1 p-3 border-t border-border text-xs">

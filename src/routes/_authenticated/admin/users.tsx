@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { adminListUsers } from "@/lib/admin.functions";
-import { adminInviteUser, adminResendInvite, adminSetUserActive, adminListPendingRoles } from "@/lib/admin-users.functions";
+import { adminInviteUser, adminResendInvite, adminSetUserActive, adminListPendingRoles, adminUpdateUserProfile } from "@/lib/admin-users.functions";
 import { myRoles, setUserRole, revokeUserRole } from "@/lib/crm.functions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ function AdminUsers() {
   const inviteFn = useServerFn(adminInviteUser);
   const resendFn = useServerFn(adminResendInvite);
   const activeFn = useServerFn(adminSetUserActive);
+  const updateProfileFn = useServerFn(adminUpdateUserProfile);
   const pendingFn = useServerFn(adminListPendingRoles);
   const setRoleFn = useServerFn(setUserRole);
   const revokeRoleFn = useServerFn(revokeUserRole);
@@ -317,6 +318,35 @@ function AdminUsers() {
                       } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
                     }}>{selected.status === "active" ? "Deactivate" : "Reactivate"}</Button>
                   </div>
+                )}
+
+                {isAdmin && (
+                  <form
+                    key={selected.id}
+                    className="pt-2 border-t border-border space-y-2"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.currentTarget as HTMLFormElement;
+                      const full_name = (form.elements.namedItem("full_name") as HTMLInputElement).value.trim();
+                      const phone = (form.elements.namedItem("phone") as HTMLInputElement).value.trim();
+                      try {
+                        await updateProfileFn({ data: { user_id: selected.id, full_name, phone } });
+                        toast.success("Profile updated");
+                        refresh();
+                      } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                    }}
+                  >
+                    <div className="text-xs uppercase text-muted-foreground">Edit profile</div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Full name</Label>
+                      <Input name="full_name" defaultValue={selected.full_name ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Phone</Label>
+                      <Input name="phone" defaultValue={selected.phone ?? ""} />
+                    </div>
+                    <Button type="submit" size="sm" variant="outline">Save profile</Button>
+                  </form>
                 )}
 
                 <div className="pt-2 border-t border-border">

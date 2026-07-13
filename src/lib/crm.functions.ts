@@ -53,10 +53,13 @@ function cleanLead(input: z.infer<typeof leadInputSchema>) {
   return out;
 }
 
+export const LEAD_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
+
 const listLeadsSchema = z.object({
   q: z.string().trim().max(200).optional(),
   stage: stageEnum.optional(),
   source: z.string().trim().max(150).optional(),
+  priority: z.enum(LEAD_PRIORITIES).optional(),
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(200).default(50),
 });
@@ -74,6 +77,8 @@ export const listLeads = createServerFn({ method: "GET" })
       .range(from, from + data.pageSize - 1);
     if (data.stage) builder = builder.eq("stage", data.stage);
     if (data.source) builder = builder.eq("source", data.source);
+    // priority column exists only after the migration; ignore the filter if not.
+    if (data.priority) builder = (builder as any).eq("priority", data.priority);
     if (data.q) {
       const p = `%${data.q.replace(/[%,]/g, "")}%`;
       builder = builder.or(
@@ -215,6 +220,8 @@ export const updateLead = createServerFn({ method: "POST" })
           phone: prev.phone,
           smsConsent: !!prev.sms_consent,
           stage: data.patch.stage!,
+          leadId: data.id,
+          actorId: context.userId,
         });
       }
       const newAgent = data.patch.assigned_to;
@@ -229,6 +236,7 @@ export const updateLead = createServerFn({ method: "POST" })
             agentName: agentProfile?.full_name ?? null,
             leadName: prev?.full_name || prev?.first_name || "New lead",
             leadId: data.id,
+            actorId: context.userId,
           });
         }
       }
@@ -236,6 +244,31 @@ export const updateLead = createServerFn({ method: "POST" })
       console.error("[notify]", e instanceof Error ? e.message : e);
     }
 
+    return { ok: true };
+  });
+
+/**
+ * Set a lead's priority (Group D #44). Isolated from updateLead so that a
+ * missing `priority` column (migration not yet applied) surfaces a friendly
+ * message instead of breaking the main save path.
+ */
+export const setLeadPriority = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid(),
+    priority: z.enum(LEAD_PRIORITIES),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { error } = await (context.supabase.from("leads") as any)
+      .update({ priority: data.priority }).eq("id", data.id);
+    if (error) {
+      console.error("[db]", error.message);
+      if (/column .*priority.* does not exist/i.test(error.message)) {
+        throw new Error("Priority isn't available yet — apply the pending migration via Lovable first.");
+      }
+      throw new Error("Operation failed. Please try again.");
+    }
     return { ok: true };
   });
 

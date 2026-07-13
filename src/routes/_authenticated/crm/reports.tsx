@@ -5,10 +5,16 @@ import { useState } from "react";
 import { z } from "zod";
 import {
   reportReferrals, reportOnService, reportActiveTracks, reportFollowUp, reportActivityLog,
+  reportSourceConversion,
 } from "@/lib/reports.functions";
+import { sendMissingDocReminders, sendFollowUpDigest } from "@/lib/reminders.functions";
+import { myRoles } from "@/lib/crm.functions";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Mail, BellRing } from "lucide-react";
+import { toast } from "sonner";
 
-const TABS = ["Referrals", "On Service", "Active Tracks", "Follow Up Report", "Activity Log"] as const;
+const TABS = ["Referrals", "Source ROI", "On Service", "Active Tracks", "Follow Up Report", "Activity Log"] as const;
 type Tab = (typeof TABS)[number];
 
 const searchSchema = z.object({ tab: z.enum(TABS).optional().default("Referrals") });
@@ -25,7 +31,10 @@ function Reports() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl">Reports</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="font-serif text-2xl">Reports</h1>
+        <ReminderActions />
+      </div>
 
       <div className="flex gap-1 border-b border-border flex-wrap">
         {TABS.map((t) => (
@@ -54,6 +63,7 @@ function Reports() {
       </div>
 
       {search.tab === "Referrals" && <ReferralsTab dateFrom={dateFrom} dateTo={dateTo} />}
+      {search.tab === "Source ROI" && <SourceRoiTab dateFrom={dateFrom} dateTo={dateTo} />}
       {search.tab === "On Service" && <OnServiceTab dateFrom={dateFrom} dateTo={dateTo} />}
       {search.tab === "Active Tracks" && <ActiveTracksTab />}
       {search.tab === "Follow Up Report" && <FollowUpTab dateFrom={dateFrom} dateTo={dateTo} />}
@@ -181,6 +191,99 @@ function ActivityLogTab({ dateFrom, dateTo }: { dateFrom: string; dateTo: string
           {!data.length && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No activity in range.</td></tr>}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ReminderActions() {
+  const me = useServerFn(myRoles);
+  const { data: roles } = useQuery({ queryKey: ["crm", "me"], queryFn: () => me() });
+  const docFn = useServerFn(sendMissingDocReminders);
+  const digestFn = useServerFn(sendFollowUpDigest);
+  const [busy, setBusy] = useState<"docs" | "digest" | null>(null);
+  if (!roles?.isAdmin) return null;
+  return (
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" disabled={busy !== null}
+        onClick={async () => {
+          if (!confirm("Email every client with an incomplete document checklist?")) return;
+          setBusy("docs");
+          try {
+            const r = await docFn();
+            toast.success(`Reminders sent: ${r.sent} · ${r.complete} already complete · ${r.skipped} skipped`);
+          } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } finally { setBusy(null); }
+        }}>
+        <Mail className="h-3.5 w-3.5 mr-1.5" /> {busy === "docs" ? "Sending…" : "Send doc reminders"}
+      </Button>
+      <Button size="sm" variant="outline" disabled={busy !== null}
+        onClick={async () => {
+          setBusy("digest");
+          try {
+            const r = await digestFn();
+            toast.success(r.count ? `Digest of ${r.count} overdue follow-up(s) emailed to you` : "No overdue follow-ups 🎉");
+          } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } finally { setBusy(null); }
+        }}>
+        <BellRing className="h-3.5 w-3.5 mr-1.5" /> {busy === "digest" ? "Sending…" : "Email me overdue follow-ups"}
+      </Button>
+    </div>
+  );
+}
+
+function SourceRoiTab({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
+  const fn = useServerFn(reportSourceConversion);
+  const { data } = useQuery({
+    queryKey: ["reports", "source-roi", dateFrom, dateTo],
+    queryFn: () => fn({ data: { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined } }),
+  });
+  const buckets = data?.buckets ?? [];
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Total leads" value={data?.totals.total ?? 0} />
+        <Stat label="Won" value={data?.totals.won ?? 0} accent="text-emerald-600" />
+        <Stat label="In progress" value={data?.totals.inProgress ?? 0} />
+        <Stat label="Overall conversion" value={`${data?.conversion ?? 0}%`} accent="text-primary" />
+      </div>
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/60 text-xs uppercase">
+            <tr>
+              <th className="p-2 text-left">Source</th><th className="p-2 text-left">Total</th>
+              <th className="p-2 text-left">Won</th><th className="p-2 text-left">Lost</th>
+              <th className="p-2 text-left">In progress</th><th className="p-2 text-left">Conversion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {buckets.map((b) => (
+              <tr key={b.source} className="border-t border-border">
+                <td className="p-2 font-medium">{b.source}</td>
+                <td className="p-2">{b.total}</td>
+                <td className="p-2 text-emerald-600">{b.won}</td>
+                <td className="p-2 text-muted-foreground">{b.lost}</td>
+                <td className="p-2">{b.inProgress}</td>
+                <td className="p-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${b.conversion}%` }} />
+                    </div>
+                    <span className="tabular-nums text-xs">{b.conversion}%</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!buckets.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No leads in range.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="text-xs font-semibold uppercase text-muted-foreground">{label}</div>
+      <div className={`text-2xl font-bold mt-1 ${accent ?? ""}`}>{value}</div>
     </div>
   );
 }

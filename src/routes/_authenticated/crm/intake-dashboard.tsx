@@ -15,6 +15,7 @@ import {
   type IntakeExportRow,
 } from "@/lib/intake-dashboard.functions";
 import { useCrmOptions } from "@/hooks/use-crm-options";
+import { statusProgress, caseAging } from "@/lib/workflow-progress";
 import { Input } from "@/components/ui/input";
 import {
   Filter, FileText, Loader2, X, History, Download, ChevronLeft, ChevronRight,
@@ -97,6 +98,7 @@ function IntakeDashboard() {
   const [bulkWorkflow, setBulkWorkflow] = useState("");
   const [bulkStatus, setBulkStatus] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
 
   const setSearch = (patch: Partial<typeof search>, resetPage = true) => {
     navigate({
@@ -115,6 +117,7 @@ function IntakeDashboard() {
       id: string;
       workflow?: string | null;
       status?: string | null;
+      status_reason?: string | null;
       agent?: string | null;
       follow_up_date?: string | null;
     }) => updateFn({ data: vars }),
@@ -465,6 +468,15 @@ function IntakeDashboard() {
                       <option value="">—</option>
                       {optsFor(c.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
+                    {(() => {
+                      const age = caseAging(c.status_date, c.status);
+                      if (age.days === null || age.severity === "ok") return null;
+                      return (
+                        <div className={`mt-1 text-[10px] font-medium ${age.severity === "stale" ? "text-red-600" : "text-amber-600"}`}>
+                          {age.days}d in status
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="p-2 text-xs">{c.agent ?? "—"}</td>
                   <td className="p-2 text-right w-6">
@@ -542,6 +554,27 @@ function IntakeDashboard() {
                 <Field label="Status Date" value={selected.status_date} />
                 <Field label="Assigned Agent" value={selected.agent} />
               </div>
+              {(() => {
+                const st = optsFor(selected.case_type).st;
+                const pct = statusProgress(selected.status, st);
+                const age = caseAging(selected.status_date, selected.status);
+                return (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                      <span>Workflow progress</span>
+                      <span className="tabular-nums">
+                        {pct}%{age.days !== null ? ` · ${age.days}d in status` : ""}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full ${age.severity === "stale" ? "bg-red-500" : age.severity === "warn" ? "bg-amber-500" : "bg-primary"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="mt-4 pt-4 border-t border-border space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Quick Update
@@ -559,13 +592,29 @@ function IntakeDashboard() {
                   <label className="text-xs space-y-1">
                     <span className="text-muted-foreground">Status</span>
                     <select value={selected.status ?? ""} disabled={pendingId === selected.id}
-                      onChange={(e) => mutation.mutate({ id: selected.id, status: e.target.value || null })}
+                      onChange={(e) => {
+                        mutation.mutate({
+                          id: selected.id,
+                          status: e.target.value || null,
+                          status_reason: reasonDraft.trim() || null,
+                        });
+                        setReasonDraft("");
+                      }}
                       className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm">
                       <option value="">—</option>
                       {optsFor(selected.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </label>
                 </div>
+                <label className="text-xs space-y-1 block">
+                  <span className="text-muted-foreground">Reason / note (saved with the next status change)</span>
+                  <input
+                    value={reasonDraft}
+                    onChange={(e) => setReasonDraft(e.target.value)}
+                    placeholder="e.g. Denied — excess resources; appeal filed"
+                    className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                  />
+                </label>
               </div>
               <CaseTimeline caseId={selected.id} eventsFn={eventsFn} />
             </>

@@ -5,11 +5,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { getLead, updateLead, deleteLead, addActivity, myRoles } from "@/lib/crm.functions";
+import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES } from "@/lib/crm.functions";
 import { convertLeadToCase } from "@/lib/cases.functions";
+import { listLeadCommunications } from "@/lib/communications.functions";
 import { useCrmOptions } from "@/hooks/use-crm-options";
+import { computeLeadScore } from "@/lib/lead-scoring";
 import { IntakeForm } from "@/components/crm/intake-form";
+import { Mail, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+
+const PRIORITY_STYLE: Record<string, string> = {
+  urgent: "bg-red-100 text-red-800 border-red-300",
+  high: "bg-amber-100 text-amber-800 border-amber-300",
+  normal: "bg-secondary text-secondary-foreground border-border",
+  low: "bg-muted text-muted-foreground border-border",
+};
+const BAND_STYLE: Record<string, string> = {
+  hot: "bg-red-100 text-red-800",
+  warm: "bg-amber-100 text-amber-800",
+  cold: "bg-sky-100 text-sky-800",
+};
 
 export const Route = createFileRoute("/_authenticated/crm/leads/$id")({
   component: LeadDetail,
@@ -29,6 +44,12 @@ function LeadDetail() {
   const { data } = useQuery({ queryKey: ["crm", "lead", id], queryFn: () => get({ data: { id } }) });
   const { data: roles } = useQuery({ queryKey: ["crm", "me"], queryFn: () => me() });
   const convert = useServerFn(convertLeadToCase);
+  const setPriority = useServerFn(setLeadPriority);
+  const commsFn = useServerFn(listLeadCommunications);
+  const { data: comms } = useQuery({
+    queryKey: ["crm", "lead", id, "comms"],
+    queryFn: () => commsFn({ data: { lead_id: id } }),
+  });
   const { options } = useCrmOptions();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,6 +61,8 @@ function LeadDetail() {
   if (!data) return <div>Loading…</div>;
   const { lead, activities } = data;
   const convertWorkflows = convertType === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
+  const priority = (lead as { priority?: string }).priority ?? "normal";
+  const scored = computeLeadScore(lead as never);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -49,6 +72,20 @@ function LeadDetail() {
           <p className="text-sm text-muted-foreground">{lead.email ?? ""} {lead.phone ? `• ${lead.phone}` : ""}</p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            className={`border rounded-md px-3 py-2 text-sm capitalize ${PRIORITY_STYLE[priority] ?? PRIORITY_STYLE.normal}`}
+            value={priority}
+            onChange={async (e) => {
+              try {
+                await setPriority({ data: { id, priority: e.target.value as typeof LEAD_PRIORITIES[number] } });
+                qc.invalidateQueries({ queryKey: ["crm", "lead", id] });
+                qc.invalidateQueries({ queryKey: ["crm", "leads"] });
+                toast.success("Priority updated");
+              } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+            }}
+          >
+            {LEAD_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
           <select className="border border-input rounded-md px-3 py-2 text-sm bg-background" value={lead.stage} onChange={async (e) => {
             await upd({ data: { id, patch: { stage: e.target.value as typeof STAGES[number] } } });
             qc.invalidateQueries({ queryKey: ["crm"] });
@@ -114,6 +151,51 @@ function LeadDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Lead score */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold">Lead score</h2>
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${BAND_STYLE[scored.band]}`}>
+              {scored.band} · {scored.score}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden mb-3">
+            <div className="h-full bg-primary" style={{ width: `${scored.score}%` }} />
+          </div>
+          <ul className="space-y-1 text-xs text-muted-foreground">
+            {scored.factors.map((f) => (
+              <li key={f.label} className="flex justify-between gap-2">
+                <span>{f.label}</span><span className="tabular-nums text-foreground">+{f.points}</span>
+              </li>
+            ))}
+            {!scored.factors.length && <li>Not enough data to score yet.</li>}
+          </ul>
+        </div>
+
+        {/* Communication history */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h2 className="font-semibold mb-3">Communications</h2>
+          <ul className="space-y-2 max-h-56 overflow-y-auto">
+            {(comms ?? []).map((c) => (
+              <li key={c.id} className="text-xs border-l-2 border-primary/40 pl-3">
+                <div className="flex items-center gap-1.5 font-medium">
+                  {c.channel === "sms" ? <MessageSquare className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+                  {c.subject ?? c.kind}
+                  {!c.success && <span className="text-red-600">(failed)</span>}
+                </div>
+                <div className="text-muted-foreground">{c.recipient} • {new Date(c.created_at).toLocaleString()}</div>
+              </li>
+            ))}
+            {!(comms ?? []).length && (
+              <li className="text-xs text-muted-foreground">
+                No messages sent yet. Emails/SMS appear here after a stage change or assignment.
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
 
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="font-semibold mb-3">Activity</h2>

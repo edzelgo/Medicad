@@ -72,6 +72,28 @@ export const adminResendInvite = createServerFn({ method: "POST" })
     return { ok: true, kind: "invite" as const };
   });
 
+/** Edit a user's profile fields (name / phone). Admin-only. (Gap A #9) */
+export const adminUpdateUserProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    user_id: z.string().uuid(),
+    full_name: z.string().trim().max(150).optional().nullable().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().nullable().or(z.literal("")),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: Record<string, unknown> = {};
+    if (data.full_name !== undefined) patch.full_name = data.full_name || null;
+    if (data.phone !== undefined) patch.phone = data.phone || null;
+    if (!Object.keys(patch).length) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("profiles").update(patch as never).eq("id", data.user_id);
+    if (error) { console.error("[db]", error.message); throw new Error("Operation failed. Please try again."); }
+    return { ok: true };
+  });
+
 /** Deactivate (ban) or reactivate a user account. */
 export const adminSetUserActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
