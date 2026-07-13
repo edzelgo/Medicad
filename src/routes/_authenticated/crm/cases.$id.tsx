@@ -4,11 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { getCaseDetail, updateCaseDemographics, addCaseTrack } from "@/lib/cases.functions";
 import { updateIntakeCase } from "@/lib/intake-dashboard.functions";
+import { getCaseChecklist, toggleCaseRequirement } from "@/lib/workflow-config.functions";
 import { CaseForm, type CaseFormValues } from "@/components/crm/case-form";
 import { useCrmOptions } from "@/hooks/use-crm-options";
+import { isTerminalStatus } from "@/lib/workflow-progress";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { History, Plus } from "lucide-react";
+import { History, Plus, CheckCircle2, Circle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/cases/$id")({
@@ -21,18 +23,23 @@ function CaseDetail() {
   const updateDemoFn = useServerFn(updateCaseDemographics);
   const addTrackFn = useServerFn(addCaseTrack);
   const updateTrackFn = useServerFn(updateIntakeCase);
+  const checklistFn = useServerFn(getCaseChecklist);
+  const toggleReqFn = useServerFn(toggleCaseRequirement);
   const qc = useQueryClient();
   const queryKey = ["crm", "case", id] as const;
   const { data } = useQuery({ queryKey, queryFn: () => getFn({ data: { id } }) });
+  const { data: checklist } = useQuery({
+    queryKey: ["crm", "case", id, "checklist"],
+    queryFn: () => checklistFn({ data: { case_id: id } }),
+  });
   const [savingDemo, setSavingDemo] = useState(false);
   const [addingTrack, setAddingTrack] = useState(false);
   const [newTrackWorkflow, setNewTrackWorkflow] = useState("");
-  const { options } = useCrmOptions();
+  const { options, statusesFor } = useCrmOptions();
 
   if (!data) return <div>Loading…</div>;
   const { case: c, tracks, events } = data;
   const workflowOptions = c.case_type === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
-  const statusOptions = c.case_type === "caregiver" ? options.cg_status : options.medicaid_status;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -48,12 +55,30 @@ function CaseDetail() {
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="font-semibold mb-3">Workflows</h2>
         <div className="space-y-3">
-          {tracks.map((t) => (
+          {tracks.map((t) => {
+            const terminal = isTerminalStatus(t.status);
+            return (
             <div key={t.id} className="rounded-md border border-border p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm font-semibold">{t.workflow ?? "—"}</div>
-                <div className="text-xs text-muted-foreground">
-                  {t.status_date ? `Updated ${t.status_date}` : null}{t.agent ? ` · Agent: ${t.agent}` : ""}
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground">
+                    {t.status_date ? `Updated ${t.status_date}` : null}{t.agent ? ` · Agent: ${t.agent}` : ""}
+                  </div>
+                  {terminal && (
+                    <Button size="sm" variant="outline" className="h-7"
+                      onClick={async () => {
+                        const reason = window.prompt("Reopen / file appeal — reason (e.g. requesting Fair Hearing):", "Appeal filed");
+                        if (reason === null) return;
+                        const active = statusesFor(t.workflow, c.case_type).find((s) => /hearing|pending|corrective|gathering/i.test(s))
+                          ?? statusesFor(t.workflow, c.case_type)[0];
+                        await updateTrackFn({ data: { id: t.id, status: active, status_reason: reason.trim() || "Reopened" } });
+                        qc.invalidateQueries({ queryKey });
+                        toast.success(`Reopened → ${active}`);
+                      }}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reopen / appeal
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
@@ -67,7 +92,7 @@ function CaseDetail() {
                   }}
                 >
                   <option value="">Status —</option>
-                  {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {statusesFor(t.workflow, c.case_type).map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <input
                   className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
@@ -85,7 +110,8 @@ function CaseDetail() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           {!tracks.length && <div className="text-sm text-muted-foreground">No workflows assigned.</div>}
         </div>
 
@@ -120,6 +146,50 @@ function CaseDetail() {
           )}
         </div>
       </div>
+
+      {checklist?.available && checklist.workflows.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h2 className="font-semibold mb-3">Document checklist</h2>
+          <div className="space-y-4">
+            {checklist.workflows.map((wf) => (
+              <div key={wf.workflow}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-sm font-medium">{wf.workflow}</div>
+                  <div className="text-xs tabular-nums text-muted-foreground">
+                    {wf.satisfied}/{wf.total} · {Math.round((wf.satisfied / Math.max(1, wf.total)) * 100)}%
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-2">
+                  <div className="h-full bg-primary" style={{ width: `${Math.round((wf.satisfied / Math.max(1, wf.total)) * 100)}%` }} />
+                </div>
+                <ul className="space-y-1">
+                  {wf.items.map((it) => (
+                    <li key={it.label}>
+                      <button
+                        className="flex items-center gap-2 text-sm text-left hover:text-primary"
+                        onClick={async () => {
+                          try {
+                            await toggleReqFn({ data: { case_id: id, requirement_label: it.label, satisfied: !it.satisfied } });
+                            qc.invalidateQueries({ queryKey: ["crm", "case", id, "checklist"] });
+                          } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+                        }}
+                      >
+                        {it.satisfied
+                          ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                          : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        <span className={it.satisfied ? "line-through text-muted-foreground" : ""}>{it.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Requirement lists are configured per workflow in Settings.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="font-semibold mb-3">Main Info</h2>

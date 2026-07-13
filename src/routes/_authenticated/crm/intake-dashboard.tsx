@@ -84,8 +84,9 @@ function IntakeDashboard() {
   const agents = data?.agents ?? [];
   const workflowStats = data?.workflowStats ?? {};
 
-  const { options } = useCrmOptions();
-  // Options scoped to a row's case type; tab-level pickers follow the active tab.
+  const { options, statusesFor } = useCrmOptions();
+  // Workflow pickers scope to a row's case type; status pickers use the row's
+  // workflow-specific status set (B#15), falling back to the shared list.
   const optsFor = (caseType: string | null | undefined) =>
     caseType === "caregiver"
       ? { wf: options.cg_workflow, st: options.cg_status }
@@ -466,7 +467,7 @@ function IntakeDashboard() {
                       onChange={(e) => mutation.mutate({ id: c.id, status: e.target.value || null })}
                       className="text-xs px-1.5 py-1 rounded border border-border bg-transparent font-semibold">
                       <option value="">—</option>
-                      {optsFor(c.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {statusesFor(c.workflow, c.case_type).map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     {(() => {
                       const age = caseAging(c.status_date, c.status);
@@ -555,7 +556,7 @@ function IntakeDashboard() {
                 <Field label="Assigned Agent" value={selected.agent} />
               </div>
               {(() => {
-                const st = optsFor(selected.case_type).st;
+                const st = statusesFor(selected.workflow, selected.case_type);
                 const pct = statusProgress(selected.status, st);
                 const age = caseAging(selected.status_date, selected.status);
                 return (
@@ -602,7 +603,7 @@ function IntakeDashboard() {
                       }}
                       className="w-full h-9 rounded-md border border-input bg-transparent px-2 text-sm">
                       <option value="">—</option>
-                      {optsFor(selected.case_type).st.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {statusesFor(selected.workflow, selected.case_type).map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </label>
                 </div>

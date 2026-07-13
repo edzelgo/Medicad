@@ -6,6 +6,10 @@ import {
   listCrmOptions, addCrmOption, removeCrmOption,
   OPTION_CATEGORIES, OPTION_CATEGORY_LABEL, type OptionCategory,
 } from "@/lib/settings.functions";
+import {
+  listWorkflowStatusSets, addWorkflowStatus, removeWorkflowStatus,
+  listWorkflowRequirements, addWorkflowRequirement, removeWorkflowRequirement,
+} from "@/lib/workflow-config.functions";
 import { myRoles } from "@/lib/crm.functions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +30,7 @@ function Settings() {
   const { data: roles } = useQuery({ queryKey: ["crm", "me"], queryFn: () => me() });
   const isAdmin = !!roles?.isAdmin;
   const editable = !!data?.editable && isAdmin;
+  const workflows = [...(data?.options.medicaid_workflow ?? []), ...(data?.options.cg_workflow ?? [])];
   const [drafts, setDrafts] = useState<Partial<Record<OptionCategory, string>>>({});
   const [busyCat, setBusyCat] = useState<OptionCategory | null>(null);
 
@@ -113,6 +118,111 @@ function Settings() {
           );
         })}
       </div>
+
+      <PerWorkflowConfig
+        title="Per-workflow status sets"
+        hint="Give a specific workflow its own ordered status list. Workflows without a custom set use the shared statuses above."
+        workflows={workflows}
+        listFn={listWorkflowStatusSets}
+        addFn={addWorkflowStatus}
+        removeFn={removeWorkflowStatus}
+        pick={(d) => d.sets}
+        queryKey="workflow-status-sets"
+        isAdmin={isAdmin}
+      />
+
+      <PerWorkflowConfig
+        title="Per-workflow document requirements"
+        hint="Define the documents required for each workflow. These appear as a checklist on every case running that workflow."
+        workflows={workflows}
+        listFn={listWorkflowRequirements}
+        addFn={addWorkflowRequirement}
+        removeFn={removeWorkflowRequirement}
+        pick={(d) => d.reqs}
+        queryKey="workflow-requirements"
+        isAdmin={isAdmin}
+      />
+    </div>
+  );
+}
+
+function PerWorkflowConfig({
+  title, hint, workflows, listFn, addFn, removeFn, pick, queryKey, isAdmin,
+}: {
+  title: string;
+  hint: string;
+  workflows: string[];
+  listFn: () => Promise<any>;
+  addFn: (a: { data: { workflow: string; label: string } }) => Promise<unknown>;
+  removeFn: (a: { data: { workflow: string; label: string } }) => Promise<unknown>;
+  pick: (d: any) => Record<string, string[]>;
+  queryKey: string;
+  isAdmin: boolean;
+}) {
+  const list = useServerFn(listFn as any);
+  const add = useServerFn(addFn as any);
+  const remove = useServerFn(removeFn as any);
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["crm", queryKey], queryFn: () => list() });
+  const [workflow, setWorkflow] = useState("");
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const map = data ? pick(data) : {};
+  const editable = !!data?.editable && isAdmin;
+  const active = workflow || workflows[0] || "";
+  const items = map[active] ?? [];
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try { await fn(); qc.invalidateQueries({ queryKey: ["crm", queryKey] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 max-w-2xl">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-3">{hint}</p>
+      {data && !data.editable && (
+        <p className="text-xs text-muted-foreground">Available once the workflow-engine migration is applied via Lovable.</p>
+      )}
+      <div className="flex items-center gap-2 mb-3">
+        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[240px]"
+          value={active} onChange={(e) => setWorkflow(e.target.value)}>
+          {workflows.map((w) => <option key={w} value={w}>{w}</option>)}
+          {!workflows.length && <option value="">No workflows defined</option>}
+        </select>
+        <span className="text-xs text-muted-foreground">{items.length} item(s)</span>
+      </div>
+      <ul className="text-sm space-y-1">
+        {items.map((it) => (
+          <li key={it} className="flex items-center justify-between gap-2 group">
+            <span className="text-muted-foreground">{it}</span>
+            {editable && (
+              <button aria-label={`Remove ${it}`} disabled={busy}
+                onClick={() => run(() => remove({ data: { workflow: active, label: it } }))}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </li>
+        ))}
+        {!items.length && <li className="text-muted-foreground text-xs">Nothing configured for this workflow.</li>}
+      </ul>
+      {editable && active && (
+        <form className="flex gap-2 mt-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const label = draft.trim();
+            if (!label) return;
+            run(async () => { await add({ data: { workflow: active, label } }); setDraft(""); toast.success(`Added "${label}"`); });
+          }}>
+          <Input placeholder="Add…" value={draft} onChange={(e) => setDraft(e.target.value)} className="h-8 text-sm" />
+          <Button type="submit" size="sm" variant="outline" disabled={busy || !draft.trim()}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
