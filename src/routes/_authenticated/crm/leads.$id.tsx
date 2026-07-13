@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES, listLeadDuplicates, mergeLead } from "@/lib/crm.functions";
+import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES, listLeadDuplicates, mergeLead, getLeadClientProgress } from "@/lib/crm.functions";
 import { convertLeadToCase } from "@/lib/cases.functions";
 import { listLeadCommunications } from "@/lib/communications.functions";
 import { listReferralOrgs, setLeadReferralOrg } from "@/lib/referrals.functions";
@@ -59,6 +59,11 @@ function LeadDetail() {
   const { data: dupes } = useQuery({
     queryKey: ["crm", "lead", id, "dupes"],
     queryFn: () => dupFn({ data: { id } }),
+  });
+  const clientProgressFn = useServerFn(getLeadClientProgress);
+  const { data: clientLink } = useQuery({
+    queryKey: ["crm", "lead", id, "client"],
+    queryFn: () => clientProgressFn({ data: { id } }),
   });
   const { options } = useCrmOptions();
   const [note, setNote] = useState("");
@@ -184,6 +189,29 @@ function LeadDetail() {
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* Linked client portal account (pipeline unification) */}
+      {clientLink?.linked && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="text-sm">
+              <span className="font-medium">Client portal account linked</span>
+              <span className="text-muted-foreground"> · {clientLink.email ?? "no email"}</span>
+            </div>
+            <div className="text-xs tabular-nums text-muted-foreground">
+              Documents {clientLink.progress.satisfied}/{clientLink.progress.total} · {clientLink.progress.percent}%
+            </div>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden mt-2">
+            <div className="h-full bg-primary" style={{ width: `${clientLink.progress.percent}%` }} />
+          </div>
+          {clientLink.progress.missing.length > 0 && (
+            <div className="text-xs text-muted-foreground mt-2">
+              Missing: {clientLink.progress.missing.join(", ")}
+            </div>
+          )}
         </div>
       )}
 

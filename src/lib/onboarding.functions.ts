@@ -84,12 +84,25 @@ export const onboardClient = createServerFn({ method: "POST" })
     if (invite_client && client_email) {
       try {
         const fullName = `${data.first_name} ${data.last_name}`.trim();
-        const { error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
           client_email,
           { data: { role: "client", full_name: fullName, phone: data.phone ?? undefined } },
         );
         if (inviteErr) throw inviteErr;
         invite = { sent: true, email: client_email };
+        // Link the lead to the new client portal account so the pipeline, the
+        // client's document checklist, and any future case share one identity.
+        // Best-effort: the client_user_id column may not exist yet (migration
+        // pending) — don't let that fail the intake.
+        if (invited?.user?.id) {
+          const { error: linkErr } = await supabaseAdmin
+            .from("leads")
+            .update({ client_user_id: invited.user.id } as never)
+            .eq("id", leadRow.id);
+          if (linkErr && !/client_user_id.*does not exist/i.test(linkErr.message)) {
+            console.error("[invite:link]", linkErr.message);
+          }
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Invite failed";
         console.error("[invite]", msg);

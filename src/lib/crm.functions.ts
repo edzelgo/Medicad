@@ -272,6 +272,35 @@ export const setLeadPriority = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Linked client portal account for a lead (Group D #41) + their Medicaid
+ * document-checklist progress. Returns { linked: false } when the lead has no
+ * client_user_id (or the column doesn't exist yet).
+ */
+export const getLeadClientProgress = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { data: lead } = await context.supabase
+      .from("leads").select("*").eq("id", data.id).maybeSingle();
+    const clientUserId = (lead as { client_user_id?: string | null } | null)?.client_user_id ?? null;
+    if (!clientUserId) return { linked: false as const };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeRequirementProgress } = await import("@/lib/medicaid-requirements");
+    const { data: docs } = await supabaseAdmin
+      .from("documents").select("name").eq("user_id", clientUserId);
+    const progress = computeRequirementProgress((docs ?? []).map((d) => d.name));
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(clientUserId);
+    return {
+      linked: true as const,
+      clientUserId,
+      email: u?.user?.email ?? null,
+      progress,
+    };
+  });
+
 /** Possible duplicates of an existing lead (Group D #49), for the merge tool. */
 export const listLeadDuplicates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

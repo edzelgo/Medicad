@@ -130,6 +130,11 @@ export const adminGetDocumentUrl = createServerFn({ method: "POST" })
 
 // ============================================================================
 // Client application pipeline
+//
+// DEPRECATED (Group D #41): the separate profiles.application_status board has
+// been retired in favor of the unified lead pipeline (/crm/pipeline). These
+// functions remain for any external callers / historical data but are no longer
+// wired to UI. adminListAgents is still used by the unified pipeline.
 // ============================================================================
 
 export const adminListApplicationPipeline = createServerFn({ method: "GET" })
