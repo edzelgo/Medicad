@@ -37,7 +37,12 @@ function OnboardPage() {
               Submit a new resident referral. Fields match the Facility Intake spec.
             </p>
           </div>
-          <Link to="/portal" className="text-sm text-muted-foreground hover:text-foreground">Back to portal</Link>
+          <Link
+            to={onboarderRole === "referral" ? "/referrals" : onboarderRole === "admin" || onboarderRole === "agent" ? "/crm/leads" : "/portal"}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            {onboarderRole === "referral" ? "My referrals" : "Back"}
+          </Link>
         </div>
       </header>
       <main className="max-w-5xl mx-auto p-6 space-y-6">
@@ -81,7 +86,7 @@ function OnboardPage() {
               if (onboarderRole === "admin" || onboarderRole === "agent") {
                 navigate({ to: "/crm/leads/$id", params: { id: res.lead_id } });
               } else {
-                navigate({ to: "/portal" });
+                navigate({ to: "/referrals" });
               }
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Failed to submit intake");

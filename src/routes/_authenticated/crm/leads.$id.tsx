@@ -1,13 +1,14 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES } from "@/lib/crm.functions";
+import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES, listLeadDuplicates, mergeLead } from "@/lib/crm.functions";
 import { convertLeadToCase } from "@/lib/cases.functions";
 import { listLeadCommunications } from "@/lib/communications.functions";
+import { listReferralOrgs, setLeadReferralOrg } from "@/lib/referrals.functions";
 import { useCrmOptions } from "@/hooks/use-crm-options";
 import { computeLeadScore } from "@/lib/lead-scoring";
 import { IntakeForm } from "@/components/crm/intake-form";
@@ -46,9 +47,18 @@ function LeadDetail() {
   const convert = useServerFn(convertLeadToCase);
   const setPriority = useServerFn(setLeadPriority);
   const commsFn = useServerFn(listLeadCommunications);
+  const orgsFn = useServerFn(listReferralOrgs);
+  const setOrgFn = useServerFn(setLeadReferralOrg);
+  const dupFn = useServerFn(listLeadDuplicates);
+  const merge = useServerFn(mergeLead);
   const { data: comms } = useQuery({
     queryKey: ["crm", "lead", id, "comms"],
     queryFn: () => commsFn({ data: { lead_id: id } }),
+  });
+  const { data: orgData } = useQuery({ queryKey: ["crm", "referral-orgs"], queryFn: () => orgsFn() });
+  const { data: dupes } = useQuery({
+    queryKey: ["crm", "lead", id, "dupes"],
+    queryFn: () => dupFn({ data: { id } }),
   });
   const { options } = useCrmOptions();
   const [note, setNote] = useState("");
@@ -62,7 +72,9 @@ function LeadDetail() {
   const { lead, activities } = data;
   const convertWorkflows = convertType === "caregiver" ? options.cg_workflow : options.medicaid_workflow;
   const priority = (lead as { priority?: string }).priority ?? "normal";
+  const referralOrgId = (lead as { referral_org_id?: string | null }).referral_org_id ?? "";
   const scored = computeLeadScore(lead as never);
+  const orgs = orgData?.orgs ?? [];
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -151,6 +163,56 @@ function LeadDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Referral partner assignment */}
+      {orgs.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-3 flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium">Referral partner</span>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[220px]"
+            value={referralOrgId}
+            onChange={async (e) => {
+              try {
+                await setOrgFn({ data: { lead_id: id, referral_org_id: e.target.value || null } });
+                qc.invalidateQueries({ queryKey: ["crm", "lead", id] });
+                toast.success("Referral partner updated");
+              } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+            }}
+          >
+            <option value="">— None —</option>
+            {orgs.filter((o) => o.active || o.id === referralOrgId).map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Possible duplicates / merge (admin) */}
+      {roles?.isAdmin && (dupes ?? []).length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4">
+          <div className="text-sm font-semibold mb-2">
+            {dupes!.length} possible duplicate{dupes!.length === 1 ? "" : "s"}
+          </div>
+          <ul className="space-y-2">
+            {dupes!.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <Link to="/crm/leads/$id" params={{ id: d.id }} className="font-medium hover:underline">
+                  {d.full_name || `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim() || d.id.slice(0, 8)}
+                </Link>
+                <span className="text-muted-foreground text-xs">{d.email ?? d.phone ?? ""} · {d.stage}</span>
+                <Button size="sm" variant="outline" className="ml-auto" onClick={async () => {
+                  if (!confirm("Merge this duplicate INTO the current lead? This deletes the duplicate and moves its activity here. This cannot be undone.")) return;
+                  try {
+                    const res = await merge({ data: { primary_id: id, duplicate_id: d.id } });
+                    toast.success(`Merged${res.backfilled ? ` · ${res.backfilled} field(s) filled` : ""}`);
+                    qc.invalidateQueries({ queryKey: ["crm", "lead", id] });
+                  } catch (e) { toast.error(e instanceof Error ? e.message : "Merge failed"); }
+                }}>Merge into this lead</Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Lead score */}

@@ -272,6 +272,70 @@ export const setLeadPriority = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Possible duplicates of an existing lead (Group D #49), for the merge tool. */
+export const listLeadDuplicates = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { data: lead } = await context.supabase
+      .from("leads").select("id, email, phone, first_name, last_name").eq("id", data.id).maybeSingle();
+    if (!lead) return [];
+    return findPossibleDuplicates(context.supabase, {
+      email: lead.email, phone: lead.phone,
+      first_name: lead.first_name ?? undefined, last_name: lead.last_name ?? undefined,
+    }, data.id);
+  });
+
+/**
+ * Merge a duplicate lead into a primary (Group D #49). Moves activities to the
+ * primary, backfills any empty primary fields from the duplicate, then deletes
+ * the duplicate. Admin-only and non-reversible, so guarded on the client too.
+ */
+export const mergeLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    primary_id: z.string().uuid(),
+    duplicate_id: z.string().uuid(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Only admins can merge leads.");
+    if (data.primary_id === data.duplicate_id) throw new Error("Cannot merge a lead into itself.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: primary } = await supabaseAdmin.from("leads").select("*").eq("id", data.primary_id).maybeSingle();
+    const { data: dup } = await supabaseAdmin.from("leads").select("*").eq("id", data.duplicate_id).maybeSingle();
+    if (!primary || !dup) throw new Error("Lead not found.");
+
+    // Backfill empty primary fields from the duplicate (never overwrite existing).
+    const patch: Record<string, unknown> = {};
+    const skip = new Set(["id", "created_at", "created_by", "full_name"]);
+    for (const [k, v] of Object.entries(dup as Record<string, unknown>)) {
+      if (skip.has(k)) continue;
+      const cur = (primary as Record<string, unknown>)[k];
+      if ((cur === null || cur === undefined || cur === "") && v !== null && v !== undefined && v !== "") {
+        patch[k] = v;
+      }
+    }
+    if (Object.keys(patch).length) {
+      await supabaseAdmin.from("leads").update(patch as never).eq("id", data.primary_id);
+    }
+
+    // Move activities, then log the merge on the primary.
+    await supabaseAdmin.from("activities").update({ lead_id: data.primary_id } as never).eq("lead_id", data.duplicate_id);
+    await supabaseAdmin.from("activities").insert({
+      lead_id: data.primary_id,
+      type: "system",
+      content: `Merged duplicate lead "${(dup.full_name ?? `${dup.first_name ?? ""} ${dup.last_name ?? ""}`.trim()) || dup.id.slice(0, 8)}" into this record.`,
+      created_by: context.userId,
+    } as never);
+
+    const { error: delErr } = await supabaseAdmin.from("leads").delete().eq("id", data.duplicate_id);
+    if (delErr) { console.error("[db]", delErr.message); throw new Error("Merge failed while removing the duplicate."); }
+    return { ok: true, backfilled: Object.keys(patch).length };
+  });
+
 export const deleteLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
