@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertStaff } from "@/lib/auth/staff";
+import { STATUS_OPTIONS } from "@/lib/intake-dashboard.functions";
+import { CG_STATUS_OPTIONS } from "@/lib/intake-options";
 import { z } from "zod";
 
 // New tables aren't in the generated Database types until the next Lovable
@@ -191,3 +193,140 @@ export const toggleCaseRequirement = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+// ---------------------------------------------------------------------------
+// B#19 — stage transition rules
+// ---------------------------------------------------------------------------
+
+export const RULE_TYPES = ["reason_required", "checklist_complete", "no_skip"] as const;
+export type RuleType = (typeof RULE_TYPES)[number];
+export const RULE_TYPE_LABEL: Record<RuleType, string> = {
+  reason_required: "Require a reason to enter this status",
+  checklist_complete: "Require the document checklist to be complete",
+  no_skip: "Enforce step order (no skipping ahead)",
+};
+
+export type TransitionRule = { workflow: string; target_status: string; rule_type: RuleType };
+
+export const listTransitionRules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ rules: TransitionRule[]; editable: boolean }> => {
+    await assertStaff(context);
+    const { data, error } = await tbl(context.supabase, "workflow_transition_rules")
+      .select("workflow, target_status, rule_type, active")
+      .order("workflow", { ascending: true }) as { data: any[] | null; error: any };
+    if (error) return { rules: [], editable: false };
+    return {
+      rules: (data ?? []).filter((r) => r.active).map((r) => ({
+        workflow: r.workflow, target_status: r.target_status, rule_type: r.rule_type,
+      })),
+      editable: true,
+    };
+  });
+
+const ruleSchema = z.object({
+  workflow: z.string().trim().min(1).max(150),
+  target_status: z.string().trim().min(1).max(150),
+  rule_type: z.enum(RULE_TYPES),
+});
+
+export const addTransitionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ruleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // no_skip is workflow-wide; pin it to '*' regardless of the picked status.
+    const target = data.rule_type === "no_skip" ? "*" : data.target_status;
+    const { error } = await tbl(supabaseAdmin, "workflow_transition_rules").upsert(
+      { workflow: data.workflow, target_status: target, rule_type: data.rule_type, active: true },
+      { onConflict: "workflow,target_status,rule_type" },
+    ) as { error: any };
+    if (error) {
+      if (/does not exist/i.test(error.message)) throw new Error("Workflow config isn't available yet — apply the pending migration via Lovable.");
+      throw new Error("Failed to add rule.");
+    }
+    return { ok: true };
+  });
+
+export const removeTransitionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ruleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await tbl(supabaseAdmin, "workflow_transition_rules")
+      .update({ active: false })
+      .eq("workflow", data.workflow).eq("target_status", data.target_status).eq("rule_type", data.rule_type) as { error: any };
+    if (error) throw new Error("Failed to remove rule.");
+    return { ok: true };
+  });
+
+/**
+ * Server-only evaluator (not a server fn). Returns { ok:false, message } when a
+ * status change violates a configured rule. Fail-open: if the rules table is
+ * missing, or data can't be resolved, the transition is allowed.
+ */
+export async function evaluateTransition(
+  supabase: unknown,
+  args: {
+    workflow: string | null | undefined;
+    caseId: string;
+    caseType: string | null | undefined;
+    currentStatus: string | null | undefined;
+    newStatus: string;
+    reason: string | null | undefined;
+  },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { workflow } = args;
+  if (!workflow) return { ok: true };
+
+  const { data: rules, error } = await tbl(supabase, "workflow_transition_rules")
+    .select("target_status, rule_type, active")
+    .eq("workflow", workflow) as { data: any[] | null; error: any };
+  if (error) return { ok: true }; // table missing → no rules
+  const active = (rules ?? []).filter((r) => r.active);
+  if (!active.length) return { ok: true };
+
+  const applies = (r: any) => r.target_status === args.newStatus || r.target_status === "*";
+
+  for (const r of active.filter(applies)) {
+    if (r.rule_type === "reason_required" && r.target_status === args.newStatus) {
+      if (!args.reason || !args.reason.trim()) {
+        return { ok: false, message: `A reason is required to set status "${args.newStatus}". Open the case and add a reason before changing the status.` };
+      }
+    }
+    if (r.rule_type === "checklist_complete" && r.target_status === args.newStatus) {
+      const { data: reqs } = await tbl(supabase, "workflow_requirements")
+        .select("label, active").eq("workflow", workflow) as { data: any[] | null };
+      const required = (reqs ?? []).filter((x) => x.active).map((x) => x.label);
+      if (required.length) {
+        const { data: checks } = await tbl(supabase, "case_requirement_checks")
+          .select("requirement_label, satisfied").eq("case_id", args.caseId) as { data: any[] | null };
+        const done = new Set((checks ?? []).filter((c) => c.satisfied).map((c) => c.requirement_label));
+        const missing = required.filter((l) => !done.has(l));
+        if (missing.length) {
+          return { ok: false, message: `Complete the "${workflow}" document checklist before moving to "${args.newStatus}". Missing: ${missing.join(", ")}.` };
+        }
+      }
+    }
+    if (r.rule_type === "no_skip") {
+      const { data: sets } = await tbl(supabase, "workflow_status_sets")
+        .select("label, active, sort_order").eq("workflow", workflow)
+        .order("sort_order", { ascending: true }) as { data: any[] | null };
+      const list = (sets ?? []).filter((s) => s.active).map((s) => s.label);
+      const ordered = list.length
+        ? list
+        : [...(args.caseType === "caregiver" ? CG_STATUS_OPTIONS : STATUS_OPTIONS)];
+      const from = ordered.indexOf(args.currentStatus ?? "");
+      const to = ordered.indexOf(args.newStatus);
+      // Only guard forward jumps; backward moves (corrections/reopen) are allowed.
+      if (from >= 0 && to >= 0 && to > from + 1) {
+        return { ok: false, message: `You can't skip ahead to "${args.newStatus}". Move to "${ordered[from + 1]}" first.` };
+      }
+    }
+  }
+  return { ok: true };
+}

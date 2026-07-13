@@ -144,6 +144,27 @@ export const updateIntakeCase = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => updateSchema.parse(d))
   .handler(async ({ data, context }): Promise<IntakeCase> => {
     await assertStaff(context);
+
+    // B#19 — enforce transition rules before applying a real status change.
+    if (data.status) {
+      const { data: track } = await context.supabase
+        .from("case_tracks").select("case_id, workflow, status").eq("id", data.id).maybeSingle();
+      if (track?.workflow && track.status !== data.status) {
+        const { data: caseRow } = await context.supabase
+          .from("cases").select("case_type").eq("id", track.case_id).maybeSingle();
+        const { evaluateTransition } = await import("@/lib/workflow-config.functions");
+        const verdict = await evaluateTransition(context.supabase, {
+          workflow: track.workflow,
+          caseId: track.case_id,
+          caseType: caseRow?.case_type,
+          currentStatus: track.status,
+          newStatus: data.status,
+          reason: data.status_reason,
+        });
+        if (!verdict.ok) throw new Error(verdict.message);
+      }
+    }
+
     const patch: {
       workflow?: string | null;
       status?: string | null;

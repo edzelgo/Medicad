@@ -9,6 +9,8 @@ import {
 import {
   listWorkflowStatusSets, addWorkflowStatus, removeWorkflowStatus,
   listWorkflowRequirements, addWorkflowRequirement, removeWorkflowRequirement,
+  listTransitionRules, addTransitionRule, removeTransitionRule,
+  RULE_TYPES, RULE_TYPE_LABEL, type RuleType,
 } from "@/lib/workflow-config.functions";
 import { myRoles } from "@/lib/crm.functions";
 import { Input } from "@/components/ui/input";
@@ -142,6 +144,113 @@ function Settings() {
         queryKey="workflow-requirements"
         isAdmin={isAdmin}
       />
+
+      <TransitionRulesConfig
+        workflows={workflows}
+        statusesForWorkflow={(wf) =>
+          (data?.options.cg_workflow ?? []).includes(wf)
+            ? (data?.options.cg_status ?? [])
+            : (data?.options.medicaid_status ?? [])
+        }
+        isAdmin={isAdmin}
+      />
+    </div>
+  );
+}
+
+function TransitionRulesConfig({
+  workflows, statusesForWorkflow, isAdmin,
+}: {
+  workflows: string[];
+  statusesForWorkflow: (wf: string) => string[];
+  isAdmin: boolean;
+}) {
+  const list = useServerFn(listTransitionRules);
+  const add = useServerFn(addTransitionRule);
+  const remove = useServerFn(removeTransitionRule);
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["crm", "transition-rules"], queryFn: () => list() });
+  const [workflow, setWorkflow] = useState("");
+  const [targetStatus, setTargetStatus] = useState("");
+  const [ruleType, setRuleType] = useState<RuleType>("reason_required");
+  const [busy, setBusy] = useState(false);
+
+  const editable = !!data?.editable && isAdmin;
+  const active = workflow || workflows[0] || "";
+  const statuses = active ? statusesForWorkflow(active) : [];
+  const rules = (data?.rules ?? []).filter((r) => r.workflow === active);
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try { await fn(); qc.invalidateQueries({ queryKey: ["crm", "transition-rules"] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 max-w-2xl">
+      <h2 className="text-sm font-semibold">Stage transition rules</h2>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+        Gate status changes: require a reason or a complete checklist to enter a status, or enforce step order.
+        Rules are checked when staff change a case's status.
+      </p>
+      {data && !data.editable && (
+        <p className="text-xs text-muted-foreground">Available once the transition-rules migration is applied via Lovable.</p>
+      )}
+      <div className="flex items-center gap-2 mb-3">
+        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[220px]"
+          value={active} onChange={(e) => { setWorkflow(e.target.value); setTargetStatus(""); }}>
+          {workflows.map((w) => <option key={w} value={w}>{w}</option>)}
+          {!workflows.length && <option value="">No workflows defined</option>}
+        </select>
+      </div>
+
+      <ul className="text-sm space-y-1 mb-3">
+        {rules.map((r) => (
+          <li key={`${r.target_status}-${r.rule_type}`} className="flex items-center justify-between gap-2 group">
+            <span className="text-muted-foreground">
+              {RULE_TYPE_LABEL[r.rule_type as RuleType]}
+              {r.rule_type !== "no_skip" && r.target_status !== "*" && <span className="text-foreground"> → “{r.target_status}”</span>}
+            </span>
+            {editable && (
+              <button aria-label="Remove rule" disabled={busy}
+                onClick={() => run(() => remove({ data: { workflow: active, target_status: r.target_status, rule_type: r.rule_type as RuleType } }))}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </li>
+        ))}
+        {!rules.length && <li className="text-muted-foreground text-xs">No rules for this workflow.</li>}
+      </ul>
+
+      {editable && active && (
+        <form className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (ruleType !== "no_skip" && !targetStatus) { toast.error("Pick a target status"); return; }
+            run(async () => {
+              await add({ data: { workflow: active, target_status: ruleType === "no_skip" ? "*" : targetStatus, rule_type: ruleType } });
+              setTargetStatus("");
+              toast.success("Rule added");
+            });
+          }}>
+          <select className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            value={ruleType} onChange={(e) => setRuleType(e.target.value as RuleType)}>
+            {RULE_TYPES.map((rt) => <option key={rt} value={rt}>{RULE_TYPE_LABEL[rt]}</option>)}
+          </select>
+          {ruleType !== "no_skip" && (
+            <select className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              value={targetStatus} onChange={(e) => setTargetStatus(e.target.value)}>
+              <option value="">Target status…</option>
+              {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          <Button type="submit" size="sm" variant="outline" disabled={busy}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add rule
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
