@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFieldRules } from "@/hooks/use-field-rules";
+import { evaluateFieldRules, CONTROLLABLE_FIELDS, type FieldRuleState } from "@/lib/field-rules";
+import { toast } from "sonner";
+
+const FIELD_LABEL: Record<string, string> = Object.fromEntries(CONTROLLABLE_FIELDS.map((f) => [f.key, f.label]));
+const FieldRulesCtx = createContext<FieldRuleState>({ hidden: new Set(), required: new Set() });
 
 export type IntakeValues = {
   first_name: string; last_name: string; middle_initial?: string;
@@ -42,10 +48,30 @@ export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", bus
   } as IntakeValues);
   const set = <K extends keyof IntakeValues>(k: K, val: IntakeValues[K]) => setV((s) => ({ ...s, [k]: val }));
 
+  // B#18 — conditional field visibility/requiredness driven by admin rules.
+  const rules = useFieldRules();
+  const fieldState = evaluateFieldRules(rules, v as unknown as Record<string, unknown>);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Enforce rule-required fields that are currently visible.
+    const missing = [...fieldState.required].filter((f) => {
+      if (fieldState.hidden.has(f)) return false;
+      const val = (v as unknown as Record<string, unknown>)[f];
+      return val === undefined || val === null || String(val).trim() === "";
+    });
+    if (missing.length) {
+      toast.error(`Please complete: ${missing.map((f) => FIELD_LABEL[f] ?? f).join(", ")}`);
+      return;
+    }
+    onSubmit(v);
+  };
+
   return (
+    <FieldRulesCtx.Provider value={fieldState}>
     <form
       className="space-y-6"
-      onSubmit={(e) => { e.preventDefault(); onSubmit(v); }}
+      onSubmit={handleSubmit}
     >
       <Section title="Referral Type">
         <Grid>
@@ -61,15 +87,15 @@ export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", bus
           <Field label="First name *"><Input required value={v.first_name} onChange={(e) => set("first_name", e.target.value)} /></Field>
           <Field label="Middle initial"><Input maxLength={2} value={v.middle_initial ?? ""} onChange={(e) => set("middle_initial", e.target.value)} /></Field>
           <Field label="Last name *"><Input required value={v.last_name} onChange={(e) => set("last_name", e.target.value)} /></Field>
-          <Field label="Date of birth"><Input type="date" value={v.dob ?? ""} onChange={(e) => set("dob", e.target.value)} /></Field>
-          <Field label="Social Security Number"><Input value={v.ssn ?? ""} onChange={(e) => set("ssn", e.target.value)} placeholder="XXX-XX-XXXX" /></Field>
+          <Field label="Date of birth" name="dob"><Input type="date" value={v.dob ?? ""} onChange={(e) => set("dob", e.target.value)} /></Field>
+          <Field label="Social Security Number" name="ssn"><Input value={v.ssn ?? ""} onChange={(e) => set("ssn", e.target.value)} placeholder="XXX-XX-XXXX" /></Field>
           <Field label="Phone"><Input value={v.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
-          <Field label="Address prior to entering facility" wide><Input value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
-          <Field label="State">
+          <Field label="Address prior to entering facility" name="address" wide><Input value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
+          <Field label="State" name="state">
             <SelectInput value={v.state} onChange={(x) => set("state", x)} options={US_STATES} />
           </Field>
-          <Field label="ZIP code"><Input value={v.zip ?? ""} onChange={(e) => set("zip", e.target.value)} /></Field>
-          <Field label="Veteran status">
+          <Field label="ZIP code" name="zip"><Input value={v.zip ?? ""} onChange={(e) => set("zip", e.target.value)} /></Field>
+          <Field label="Veteran status" name="veteran_status">
             <SelectInput value={v.veteran_status} onChange={(x) => set("veteran_status", x)} options={VETERAN_STATUS_OPTIONS} />
           </Field>
           <Field label="Marital status">
@@ -115,13 +141,13 @@ export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", bus
           <Field label="Transferred resources in last 60 months?">
             <SelectInput value={v.transferred_resources_60mo === undefined ? undefined : v.transferred_resources_60mo ? "Yes" : "No"} onChange={(x) => set("transferred_resources_60mo", x === "Yes")} options={["Yes", "No"]} />
           </Field>
-          <Field label="Estimated transfer amount"><Input type="number" value={v.transfer_amount ?? ""} onChange={(e) => set("transfer_amount", e.target.value ? Number(e.target.value) : undefined)} /></Field>
+          <Field label="Estimated transfer amount" name="transfer_amount"><Input type="number" value={v.transfer_amount ?? ""} onChange={(e) => set("transfer_amount", e.target.value ? Number(e.target.value) : undefined)} /></Field>
           <Field label="Retroactive benefits required?">
             <SelectInput value={v.retroactive_required === undefined ? undefined : v.retroactive_required ? "Yes" : "No"} onChange={(x) => set("retroactive_required", x === "Yes")} options={["Yes", "No"]} />
           </Field>
-          <Field label="Date first coverage needed"><Input type="date" value={v.date_first_coverage ?? ""} onChange={(e) => set("date_first_coverage", e.target.value)} /></Field>
-          <Field label="Estimated resources still to spend down"><Input type="number" value={v.estimated_spend_down_remaining ?? ""} onChange={(e) => set("estimated_spend_down_remaining", e.target.value ? Number(e.target.value) : undefined)} /></Field>
-          <Field label="Email (optional)"><Input type="email" value={v.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
+          <Field label="Date first coverage needed" name="date_first_coverage"><Input type="date" value={v.date_first_coverage ?? ""} onChange={(e) => set("date_first_coverage", e.target.value)} /></Field>
+          <Field label="Estimated resources still to spend down" name="estimated_spend_down_remaining"><Input type="number" value={v.estimated_spend_down_remaining ?? ""} onChange={(e) => set("estimated_spend_down_remaining", e.target.value ? Number(e.target.value) : undefined)} /></Field>
+          <Field label="Email (optional)" name="email"><Input type="email" value={v.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
         </Grid>
       </Section>
 
@@ -150,6 +176,7 @@ export function IntakeForm({ initial, onSubmit, submitLabel = "Save intake", bus
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : submitLabel}</Button>
       </div>
     </form>
+    </FieldRulesCtx.Provider>
   );
 }
 
@@ -162,8 +189,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 function Grid({ children }: { children: React.ReactNode }) { return <div className="grid grid-cols-1 md:grid-cols-3 gap-3">{children}</div>; }
-function Field({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
-  return <div className={`space-y-1 ${wide ? "md:col-span-3" : ""}`}><Label className="text-xs text-muted-foreground">{label}</Label>{children}</div>;
+function Field({ label, wide, name, children }: { label: string; wide?: boolean; name?: string; children: React.ReactNode }) {
+  const { hidden, required } = useContext(FieldRulesCtx);
+  if (name && hidden.has(name)) return null;
+  const isRequired = !!name && required.has(name);
+  return (
+    <div className={`space-y-1 ${wide ? "md:col-span-3" : ""}`}>
+      <Label className="text-xs text-muted-foreground">{label}{isRequired && <span className="text-destructive"> *</span>}</Label>
+      {children}
+    </div>
+  );
 }
 function SelectInput({ value, onChange, options }: { value?: string; onChange: (v: string) => void; options: string[] }) {
   return (

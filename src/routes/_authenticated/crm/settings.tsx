@@ -12,6 +12,11 @@ import {
   listTransitionRules, addTransitionRule, removeTransitionRule,
   RULE_TYPES, RULE_TYPE_LABEL, type RuleType,
 } from "@/lib/workflow-config.functions";
+import { listFieldRules, addFieldRule, removeFieldRule } from "@/lib/field-rules.functions";
+import {
+  CONTROLLABLE_FIELDS, CONDITION_FIELDS, OPERATORS, OPERATOR_LABEL, FIELD_ACTIONS,
+  type Operator, type FieldAction,
+} from "@/lib/field-rules";
 import { myRoles } from "@/lib/crm.functions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -154,6 +159,96 @@ function Settings() {
         }
         isAdmin={isAdmin}
       />
+
+      <FieldRulesConfig isAdmin={isAdmin} />
+    </div>
+  );
+}
+
+function FieldRulesConfig({ isAdmin }: { isAdmin: boolean }) {
+  const list = useServerFn(listFieldRules);
+  const add = useServerFn(addFieldRule);
+  const remove = useServerFn(removeFieldRule);
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["crm", "field-rules"], queryFn: () => list() });
+  const [field, setField] = useState<string>(CONTROLLABLE_FIELDS[0].key);
+  const [action, setAction] = useState<FieldAction>("show");
+  const [conditionField, setConditionField] = useState<string>(CONDITION_FIELDS[0].key);
+  const [operator, setOperator] = useState<Operator>("equals");
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const editable = !!data?.editable && isAdmin;
+  const rules = data?.rules ?? [];
+  const needsValue = operator !== "truthy" && operator !== "falsy";
+  const labelFor = (key: string, catalog: readonly { key: string; label: string }[]) =>
+    catalog.find((c) => c.key === key)?.label ?? key;
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try { await fn(); qc.invalidateQueries({ queryKey: ["crm", "field-rules"] }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 max-w-2xl">
+      <h2 className="text-sm font-semibold">Conditional intake fields</h2>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+        Show or require an intake field based on another answer — e.g. require “Spouse SSN” when marital status is Married,
+        or show the transfer amount only when resources were transferred.
+      </p>
+      {data && !data.editable && (
+        <p className="text-xs text-muted-foreground">Available once the field-rules migration is applied via Lovable.</p>
+      )}
+
+      <ul className="text-sm space-y-1 mb-3">
+        {rules.map((r, i) => (
+          <li key={i} className="flex items-center justify-between gap-2 group">
+            <span className="text-muted-foreground">
+              <span className="uppercase text-[10px] font-semibold text-foreground mr-1">{r.action}</span>
+              “{labelFor(r.field, CONTROLLABLE_FIELDS)}” when “{labelFor(r.condition_field, CONDITION_FIELDS)}” {OPERATOR_LABEL[r.operator]}{r.condition_value ? ` “${r.condition_value}”` : ""}
+            </span>
+            {editable && (
+              <button aria-label="Remove rule" disabled={busy}
+                onClick={() => run(() => remove({ data: r }))}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </li>
+        ))}
+        {!rules.length && <li className="text-muted-foreground text-xs">No conditional rules yet.</li>}
+      </ul>
+
+      {editable && (
+        <form className="flex flex-wrap items-center gap-2 text-sm"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (needsValue && !value.trim()) { toast.error("Enter a value to compare"); return; }
+            run(async () => {
+              await add({ data: { field, action, condition_field: conditionField, operator, condition_value: needsValue ? value.trim() : null } });
+              setValue("");
+              toast.success("Rule added");
+            });
+          }}>
+          <select className="h-8 rounded-md border border-input bg-background px-2" value={action} onChange={(e) => setAction(e.target.value as FieldAction)}>
+            {FIELD_ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <select className="h-8 rounded-md border border-input bg-background px-2" value={field} onChange={(e) => setField(e.target.value)}>
+            {CONTROLLABLE_FIELDS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          <span className="text-muted-foreground">when</span>
+          <select className="h-8 rounded-md border border-input bg-background px-2" value={conditionField} onChange={(e) => setConditionField(e.target.value)}>
+            {CONDITION_FIELDS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          <select className="h-8 rounded-md border border-input bg-background px-2" value={operator} onChange={(e) => setOperator(e.target.value as Operator)}>
+            {OPERATORS.map((o) => <option key={o} value={o}>{OPERATOR_LABEL[o]}</option>)}
+          </select>
+          {needsValue && <Input className="h-8 w-40" placeholder="value" value={value} onChange={(e) => setValue(e.target.value)} />}
+          <Button type="submit" size="sm" variant="outline" disabled={busy}><Plus className="h-3.5 w-3.5 mr-1" /> Add</Button>
+        </form>
+      )}
     </div>
   );
 }
