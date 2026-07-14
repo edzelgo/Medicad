@@ -73,57 +73,114 @@ function OnboardPage() {
   );
 }
 
+type AccountMode = "none" | "invite" | "password";
+
 function ClientOnboard({ onboarderRole }: { onboarderRole: "admin" | "agent" | "referral" }) {
   const submit = useServerFn(onboardClient);
   const navigate = useNavigate();
+  const isAdmin = onboarderRole === "admin";
   const [busy, setBusy] = useState(false);
-  const [invite, setInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [mode, setMode] = useState<AccountMode>("none");
+  const [email, setEmail] = useState("");
+  const [creds, setCreds] = useState<{ email: string; password: string; leadId: string; placeholder: boolean } | null>(null);
+
+  const emailNeeded = mode === "invite";
+  const emailShown = mode === "invite" || mode === "password";
+
+  const goToLead = (leadId: string) => {
+    if (onboarderRole === "referral") navigate({ to: "/referrals" });
+    else navigate({ to: "/crm/leads/$id", params: { id: leadId } });
+  };
+
+  if (creds) {
+    return (
+      <div className="max-w-xl rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 p-5 space-y-3">
+        <h3 className="text-sm font-semibold">Client login created</h3>
+        <p className="text-xs text-muted-foreground">
+          Share these credentials with the client — the password is shown only once.
+          {creds.placeholder && " No email was provided, so a placeholder username was generated (the client can't receive email at this address)."}
+        </p>
+        <div className="rounded-md border border-border bg-card p-3 text-sm font-mono space-y-1">
+          <div><span className="text-muted-foreground">Login:</span> {creds.email}</div>
+          <div><span className="text-muted-foreground">Password:</span> {creds.password}</div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => {
+            navigator.clipboard?.writeText(`Login: ${creds.email}\nPassword: ${creds.password}`);
+            toast.success("Copied");
+          }}>Copy</Button>
+          <Button size="sm" onClick={() => goToLead(creds.leadId)}>Open lead</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Client portal invite (optional)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+        <h3 className="text-sm font-semibold mb-3">Client login</h3>
+        {isAdmin ? (
+          <div className="space-y-2">
+            {([
+              ["none", "No login — save the intake only"],
+              ["invite", "Email the client a magic-link invite"],
+              ["password", "Create a login now with a temporary password (email optional)"],
+            ] as const).map(([key, label]) => (
+              <label key={key}
+                className={`flex items-start gap-2 rounded-md border p-2.5 cursor-pointer ${mode === key ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}>
+                <input type="radio" name="account_mode" className="mt-1" checked={mode === key} onChange={() => setMode(key)} />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+            <input type="checkbox" checked={mode === "invite"} onChange={(e) => setMode(e.target.checked ? "invite" : "none")} />
             Send this client a portal invite email
           </label>
-          <div className="md:col-span-2 space-y-1">
-            <Label className="text-xs text-muted-foreground">Client or representative email</Label>
-            <Input
-              type="email"
-              disabled={!invite}
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="client@example.com"
-            />
+        )}
+
+        {emailShown && (
+          <div className="mt-3 space-y-1 max-w-md">
+            <Label className="text-xs text-muted-foreground">
+              Client or representative email {emailNeeded ? "*" : "(optional)"}
+            </Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@example.com" />
           </div>
-        </div>
+        )}
+
         <p className="text-xs text-muted-foreground mt-2">
-          When enabled, the recipient gets a magic-link email to set a password and access the client onboarding portal.
-          The intake is always saved regardless.
+          {mode === "password"
+            ? "Creates a ready-to-use client account (no email sent). You'll get a temporary password to hand to the client. The intake is always saved."
+            : "The intake is always saved. An invite emails the client a magic link to set their own password."}
         </p>
       </div>
 
       <IntakeForm
-        submitLabel={invite ? "Submit intake & send invite" : "Submit intake"}
+        submitLabel={mode === "invite" ? "Submit intake & send invite" : mode === "password" ? "Submit intake & create login" : "Submit intake"}
         busy={busy}
         onSubmit={async (v: IntakeValues) => {
-          if (invite && !inviteEmail) { toast.error("Enter an invite email or uncheck the invite option"); return; }
+          if (mode === "invite" && !email) { toast.error("Enter an email or choose a different option"); return; }
           setBusy(true);
           try {
             const res = await submit({
-              data: { ...v, invite_client: invite, client_email: invite ? inviteEmail : "" } as never,
+              data: { ...v, account_mode: mode, client_email: emailShown ? email : "" } as never,
             });
-            if (res.invite.sent) toast.success(`Intake saved · invite sent to ${res.invite.email}`);
-            else if (invite) toast.error(`Intake saved, but invite failed: ${res.invite.error}`);
-            else toast.success("Intake saved");
-            if (onboarderRole === "admin" || onboarderRole === "agent") {
-              navigate({ to: "/crm/leads/$id", params: { id: res.lead_id } });
+            const acc = res.account;
+            if (acc.mode === "password") {
+              if (acc.created && acc.tempPassword) {
+                toast.success("Intake saved · client login created");
+                setCreds({ email: acc.email!, password: acc.tempPassword, leadId: res.lead_id, placeholder: !!acc.placeholder });
+                return; // stay so the admin can copy the credentials
+              }
+              toast.error(`Intake saved, but login not created: ${acc.error}`);
+            } else if (acc.mode === "invite") {
+              if (acc.sent) toast.success(`Intake saved · invite sent to ${acc.email}`);
+              else toast.error(`Intake saved, but invite failed: ${acc.error}`);
             } else {
-              navigate({ to: "/referrals" });
+              toast.success("Intake saved");
             }
+            goToLead(res.lead_id);
           } catch (e) {
             toast.error(e instanceof Error ? e.message : "Failed to submit intake");
           } finally {

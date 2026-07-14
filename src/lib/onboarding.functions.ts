@@ -40,7 +40,16 @@ const intakeSchema = z.object({
   estimated_spend_down_remaining: z.number().optional().nullable(),
   brochure_provided: z.array(z.string()).optional(),
   notes: z.string().max(10000).optional().nullable().or(z.literal("")),
-  invite_client: z.boolean().default(false),
+  // Account handling:
+  //   none     — save the intake as a lead only (no login)
+  //   invite   — email the client a magic-link invite (needs an email)
+  //   password — create a confirmed client login now with a temp password and
+  //              no email sent; email is optional (a placeholder is generated).
+  //              Admin-only.
+  account_mode: z.enum(["none", "invite", "password"]).optional(),
+  client_full_name: z.string().trim().max(150).optional().nullable().or(z.literal("")),
+  // Back-compat with the earlier invite checkbox.
+  invite_client: z.boolean().optional().default(false),
   client_email: z.string().trim().email().max(255).optional().nullable().or(z.literal("")),
 });
 
@@ -51,6 +60,15 @@ function clean(input: Record<string, unknown>) {
     out[k] = v;
   }
   return out;
+}
+
+/** Readable, reasonably strong temporary password (no ambiguous chars). */
+function genTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  let out = "";
+  for (const b of bytes) out += chars[b % chars.length];
+  return `${out}!7`; // guarantee a symbol + digit for password policies
 }
 
 export const myOnboardAccess = createServerFn({ method: "GET" })
@@ -64,7 +82,7 @@ export const onboardClient = createServerFn({ method: "POST" })
     const { role } = await assertOnboarder(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { invite_client, client_email, ...intake } = data;
+    const { invite_client, client_email, account_mode, client_full_name, ...intake } = data;
 
     const payload = clean(intake) as Record<string, unknown>;
     payload.created_by = context.userId;
@@ -78,37 +96,75 @@ export const onboardClient = createServerFn({ method: "POST" })
       .insert(payload as never)
       .select("id")
       .single();
-    if (leadErr) { console.error("[db]", leadErr.message); throw new Error("Failed to save intake."); }
+    if (leadErr || !leadRow) { console.error("[db]", leadErr?.message); throw new Error("Failed to save intake."); }
+    const leadId: string = leadRow.id;
 
-    let invite: { sent: boolean; email?: string; error?: string } = { sent: false };
-    if (invite_client && client_email) {
-      try {
-        const fullName = `${data.first_name} ${data.last_name}`.trim();
-        const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-          client_email,
-          { data: { role: "client", full_name: fullName, phone: data.phone ?? undefined } },
-        );
-        if (inviteErr) throw inviteErr;
-        invite = { sent: true, email: client_email };
-        // Link the lead to the new client portal account so the pipeline, the
-        // client's document checklist, and any future case share one identity.
-        // Best-effort: the client_user_id column may not exist yet (migration
-        // pending) — don't let that fail the intake.
-        if (invited?.user?.id) {
-          const { error: linkErr } = await supabaseAdmin
-            .from("leads")
-            .update({ client_user_id: invited.user.id } as never)
-            .eq("id", leadRow.id);
-          if (linkErr && !/client_user_id.*does not exist/i.test(linkErr.message)) {
-            console.error("[invite:link]", linkErr.message);
-          }
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Invite failed";
-        console.error("[invite]", msg);
-        invite = { sent: false, email: client_email, error: msg };
+    const fullName = (client_full_name?.trim()) || `${data.first_name} ${data.last_name}`.trim();
+    const mode = account_mode ?? (invite_client ? "invite" : "none");
+
+    // Link a freshly-created client account back to this lead (best-effort;
+    // the client_user_id column may not exist until the migration is applied).
+    async function linkClient(userId: string) {
+      const { error } = await supabaseAdmin
+        .from("leads").update({ client_user_id: userId } as never).eq("id", leadId);
+      if (error && !/client_user_id.*does not exist/i.test(error.message)) {
+        console.error("[onboard:link]", error.message);
       }
     }
 
-    return { lead_id: leadRow.id, invite };
+    type Account =
+      | { mode: "none" }
+      | { mode: "invite"; sent: boolean; email?: string; error?: string }
+      | { mode: "password"; created: boolean; email?: string; tempPassword?: string; placeholder?: boolean; error?: string };
+    let account: Account = { mode: "none" };
+
+    if (mode === "invite") {
+      account = { mode: "invite", sent: false };
+      if (!client_email) {
+        account = { mode: "invite", sent: false, error: "An email is required to send an invite." };
+      } else {
+        try {
+          const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+            client_email, { data: { role: "client", full_name: fullName, phone: data.phone ?? undefined } },
+          );
+          if (error) throw error;
+          if (invited?.user?.id) await linkClient(invited.user.id);
+          account = { mode: "invite", sent: true, email: client_email };
+        } catch (e) {
+          account = { mode: "invite", sent: false, email: client_email, error: e instanceof Error ? e.message : "Invite failed" };
+        }
+      }
+    } else if (mode === "password") {
+      // Creating a login with a set password is powerful — admins only.
+      if (role !== "admin") throw new Error("Only admins can create a client login with a password.");
+      const placeholder = !client_email;
+      const email = client_email || `client.${leadId.slice(0, 8)}.${Date.now().toString(36)}@no-email.invalid`;
+      const tempPassword = genTempPassword();
+      try {
+        const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { role: "client", full_name: fullName, phone: data.phone ?? undefined },
+        });
+        if (error) throw error;
+        const uid = created?.user?.id;
+        if (uid) {
+          // Ensure the client role exists even if the signup trigger didn't set it.
+          await supabaseAdmin.from("user_roles").upsert(
+            { user_id: uid, role: "client", status: "approved" }, { onConflict: "user_id,role" },
+          );
+          await supabaseAdmin.from("profiles").upsert(
+            { id: uid, full_name: fullName, phone: data.phone ?? null }, { onConflict: "id" },
+          );
+          await linkClient(uid);
+        }
+        account = { mode: "password", created: true, email, tempPassword, placeholder };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Account creation failed";
+        account = { mode: "password", created: false, email, error: /already.*(registered|exists)/i.test(msg) ? "A user with this email already exists." : msg };
+      }
+    }
+
+    return { lead_id: leadId, account };
   });
