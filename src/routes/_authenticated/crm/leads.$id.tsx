@@ -4,8 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getLead, updateLead, deleteLead, addActivity, myRoles, setLeadPriority, LEAD_PRIORITIES, listLeadDuplicates, mergeLead, getLeadClientProgress } from "@/lib/crm.functions";
+import { createLeadClientAccount } from "@/lib/onboarding.functions";
 import { convertLeadToCase } from "@/lib/cases.functions";
 import { listLeadCommunications } from "@/lib/communications.functions";
 import { listReferralOrgs, setLeadReferralOrg } from "@/lib/referrals.functions";
@@ -66,6 +69,7 @@ function LeadDetail() {
     queryKey: ["crm", "lead", id, "client"],
     queryFn: () => clientProgressFn({ data: { id } }),
   });
+  const createLogin = useServerFn(createLeadClientAccount);
   const { options } = useCrmOptions();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -73,6 +77,11 @@ function LeadDetail() {
   const [convertType, setConvertType] = useState<"medicaid" | "caregiver">("medicaid");
   const [convertWorkflow, setConvertWorkflow] = useState("");
   const [converting, setConverting] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<"invite" | "password">("password");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [loginCreds, setLoginCreds] = useState<{ email: string; password: string; placeholder: boolean } | null>(null);
 
   if (!data) return <div>Loading…</div>;
   const { lead, activities } = data;
@@ -220,6 +229,93 @@ function LeadDetail() {
           )}
         </div>
       )}
+
+      {/* Create client login (admin, when no account linked yet) */}
+      {roles?.isAdmin && clientLink && !clientLink.linked && (
+        <div className="rounded-lg border border-border bg-card p-3 flex items-center justify-between flex-wrap gap-2">
+          <div className="text-sm">
+            <span className="font-medium">No client login yet</span>
+            <span className="text-muted-foreground"> · give this client portal access to upload documents and message you.</span>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => { setLoginEmail(lead.email ?? ""); setLoginOpen(true); }}>
+            Create client login
+          </Button>
+        </div>
+      )}
+
+      {/* Create-login dialog */}
+      <Dialog open={loginOpen} onOpenChange={(o) => { setLoginOpen(o); if (!o) setLoginCreds(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create client login</DialogTitle>
+            <DialogDescription>Give this client access to the portal — with or without an email.</DialogDescription>
+          </DialogHeader>
+          {loginCreds ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Share these credentials with the client — the password is shown only once.
+                {loginCreds.placeholder && " No email was provided, so a placeholder username was generated."}
+              </p>
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-sm font-mono space-y-1">
+                <div><span className="text-muted-foreground">Login:</span> {loginCreds.email}</div>
+                <div><span className="text-muted-foreground">Password:</span> {loginCreds.password}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  navigator.clipboard?.writeText(`Login: ${loginCreds.email}\nPassword: ${loginCreds.password}`);
+                  toast.success("Copied");
+                }}>Copy</Button>
+                <Button size="sm" onClick={() => { setLoginOpen(false); setLoginCreds(null); qc.invalidateQueries({ queryKey: ["crm", "lead", id, "client"] }); }}>Done</Button>
+              </div>
+            </div>
+          ) : (
+            <form
+              className="space-y-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (loginMode === "invite" && !loginEmail.trim()) { toast.error("Enter an email for the invite"); return; }
+                setLoginBusy(true);
+                try {
+                  const res = await createLogin({ data: { lead_id: id, mode: loginMode, email: loginEmail.trim() || undefined } });
+                  const acc = res.account;
+                  if (acc.mode === "password" && acc.created && acc.tempPassword) {
+                    setLoginCreds({ email: acc.email!, password: acc.tempPassword, placeholder: !!acc.placeholder });
+                    toast.success("Client login created");
+                  } else if (acc.mode === "invite" && acc.sent) {
+                    toast.success(`Invite sent to ${acc.email}`);
+                    setLoginOpen(false);
+                    qc.invalidateQueries({ queryKey: ["crm", "lead", id, "client"] });
+                  } else {
+                    toast.error(("error" in acc && acc.error) ? acc.error : "Failed to create login");
+                  }
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Failed");
+                } finally { setLoginBusy(false); }
+              }}
+            >
+              <div className="space-y-2">
+                {([
+                  ["password", "Create a login with a temporary password (email optional)"],
+                  ["invite", "Email a magic-link invite (email required)"],
+                ] as const).map(([key, label]) => (
+                  <label key={key}
+                    className={`flex items-start gap-2 rounded-md border p-2.5 cursor-pointer text-sm ${loginMode === key ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}>
+                    <input type="radio" name="login_mode" className="mt-1" checked={loginMode === key} onChange={() => setLoginMode(key)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email {loginMode === "invite" ? "*" : "(optional)"}</Label>
+                <Input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="client@example.com" />
+              </div>
+              <Button type="submit" className="w-full" disabled={loginBusy}>
+                {loginBusy ? "Creating…" : loginMode === "invite" ? "Send invite" : "Create login"}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Possible duplicates / merge (admin) */}
       {roles?.isAdmin && (dupes ?? []).length > 0 && (

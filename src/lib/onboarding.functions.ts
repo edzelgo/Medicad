@@ -1,7 +1,68 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertOnboarder, getOnboarderAccess } from "@/lib/auth/staff";
+import { assertOnboarder, assertStaff, getOnboarderAccess } from "@/lib/auth/staff";
 import { z } from "zod";
+
+export type ClientAccount =
+  | { mode: "none" }
+  | { mode: "invite"; sent: boolean; email?: string; error?: string }
+  | { mode: "password"; created: boolean; email?: string; tempPassword?: string; placeholder?: boolean; error?: string };
+
+/**
+ * Provision a client portal account for a lead. Shared by intake onboarding and
+ * the "Create client login" action on an existing lead.
+ *   invite   — email a magic-link (needs an email)
+ *   password — create a confirmed login with a temp password, no email sent;
+ *              email optional (placeholder generated). Admin-only.
+ * Always links the new account back to the lead (best-effort).
+ */
+export async function provisionClientAccount(
+  supabaseAdmin: any,
+  opts: { mode: "invite" | "password"; email: string | null | undefined; fullName: string; phone: string | null | undefined; leadId: string; isAdmin: boolean },
+): Promise<ClientAccount> {
+  const link = async (userId: string) => {
+    const { error } = await supabaseAdmin
+      .from("leads").update({ client_user_id: userId }).eq("id", opts.leadId);
+    if (error && !/client_user_id.*does not exist/i.test(error.message)) console.error("[onboard:link]", error.message);
+  };
+
+  if (opts.mode === "invite") {
+    if (!opts.email) return { mode: "invite", sent: false, error: "An email is required to send an invite." };
+    try {
+      const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        opts.email, { data: { role: "client", full_name: opts.fullName, phone: opts.phone ?? undefined } },
+      );
+      if (error) throw error;
+      if (invited?.user?.id) await link(invited.user.id);
+      return { mode: "invite", sent: true, email: opts.email };
+    } catch (e) {
+      return { mode: "invite", sent: false, email: opts.email, error: e instanceof Error ? e.message : "Invite failed" };
+    }
+  }
+
+  // password
+  if (!opts.isAdmin) throw new Error("Only admins can create a client login with a password.");
+  const placeholder = !opts.email;
+  const email = opts.email || `client.${opts.leadId.slice(0, 8)}.${Date.now().toString(36)}@no-email.invalid`;
+  const tempPassword = genTempPassword();
+  try {
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email, password: tempPassword, email_confirm: true,
+      user_metadata: { role: "client", full_name: opts.fullName, phone: opts.phone ?? undefined },
+    });
+    if (error) throw error;
+    const uid = created?.user?.id;
+    if (uid) {
+      await supabaseAdmin.from("user_roles").upsert({ user_id: uid, role: "client", status: "approved" }, { onConflict: "user_id,role" });
+      await supabaseAdmin.from("profiles").upsert({ id: uid, full_name: opts.fullName, phone: opts.phone ?? null }, { onConflict: "id" });
+      await link(uid);
+    }
+    return { mode: "password", created: true, email, tempPassword, placeholder };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Account creation failed";
+    return { mode: "password", created: false, email, error: /already.*(registered|exists)/i.test(msg) ? "A user with this email already exists." : msg };
+  }
+}
 
 // Facility Intake schema — mirrors the fields captured in the Bolt Facility
 // Intake spec (Bolt_Intake_May_19.xlsx). Everything except first/last name is
@@ -102,69 +163,46 @@ export const onboardClient = createServerFn({ method: "POST" })
     const fullName = (client_full_name?.trim()) || `${data.first_name} ${data.last_name}`.trim();
     const mode = account_mode ?? (invite_client ? "invite" : "none");
 
-    // Link a freshly-created client account back to this lead (best-effort;
-    // the client_user_id column may not exist until the migration is applied).
-    async function linkClient(userId: string) {
-      const { error } = await supabaseAdmin
-        .from("leads").update({ client_user_id: userId } as never).eq("id", leadId);
-      if (error && !/client_user_id.*does not exist/i.test(error.message)) {
-        console.error("[onboard:link]", error.message);
-      }
-    }
-
-    type Account =
-      | { mode: "none" }
-      | { mode: "invite"; sent: boolean; email?: string; error?: string }
-      | { mode: "password"; created: boolean; email?: string; tempPassword?: string; placeholder?: boolean; error?: string };
-    let account: Account = { mode: "none" };
-
-    if (mode === "invite") {
-      account = { mode: "invite", sent: false };
-      if (!client_email) {
-        account = { mode: "invite", sent: false, error: "An email is required to send an invite." };
-      } else {
-        try {
-          const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-            client_email, { data: { role: "client", full_name: fullName, phone: data.phone ?? undefined } },
-          );
-          if (error) throw error;
-          if (invited?.user?.id) await linkClient(invited.user.id);
-          account = { mode: "invite", sent: true, email: client_email };
-        } catch (e) {
-          account = { mode: "invite", sent: false, email: client_email, error: e instanceof Error ? e.message : "Invite failed" };
-        }
-      }
-    } else if (mode === "password") {
-      // Creating a login with a set password is powerful — admins only.
-      if (role !== "admin") throw new Error("Only admins can create a client login with a password.");
-      const placeholder = !client_email;
-      const email = client_email || `client.${leadId.slice(0, 8)}.${Date.now().toString(36)}@no-email.invalid`;
-      const tempPassword = genTempPassword();
-      try {
-        const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: { role: "client", full_name: fullName, phone: data.phone ?? undefined },
+    const account: ClientAccount = mode === "none"
+      ? { mode: "none" }
+      : await provisionClientAccount(supabaseAdmin, {
+          mode, email: client_email, fullName, phone: data.phone, leadId, isAdmin: role === "admin",
         });
-        if (error) throw error;
-        const uid = created?.user?.id;
-        if (uid) {
-          // Ensure the client role exists even if the signup trigger didn't set it.
-          await supabaseAdmin.from("user_roles").upsert(
-            { user_id: uid, role: "client", status: "approved" }, { onConflict: "user_id,role" },
-          );
-          await supabaseAdmin.from("profiles").upsert(
-            { id: uid, full_name: fullName, phone: data.phone ?? null }, { onConflict: "id" },
-          );
-          await linkClient(uid);
-        }
-        account = { mode: "password", created: true, email, tempPassword, placeholder };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Account creation failed";
-        account = { mode: "password", created: false, email, error: /already.*(registered|exists)/i.test(msg) ? "A user with this email already exists." : msg };
-      }
-    }
 
     return { lead_id: leadId, account };
+  });
+
+/**
+ * Create a client login for an EXISTING lead (from the lead detail).
+ * Admin-only; supports invite (email) or password (email optional).
+ */
+export const createLeadClientAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    lead_id: z.string().uuid(),
+    mode: z.enum(["invite", "password"]),
+    email: z.string().trim().email().max(255).optional().nullable().or(z.literal("")),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Only admins can create a client login.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // client_user_id isn't in the generated types until the next Lovable sync.
+    const { data: lead } = await (supabaseAdmin.from("leads") as any)
+      .select("id, first_name, last_name, full_name, email, phone, client_user_id")
+      .eq("id", data.lead_id).maybeSingle();
+    if (!lead) throw new Error("Lead not found.");
+    if (lead.client_user_id) throw new Error("This lead already has a client login.");
+
+    const fullName = lead.full_name || `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || "Client";
+    const account = await provisionClientAccount(supabaseAdmin, {
+      mode: data.mode,
+      email: data.email || lead.email,
+      fullName,
+      phone: lead.phone,
+      leadId: lead.id,
+      isAdmin,
+    });
+    return { account };
   });
