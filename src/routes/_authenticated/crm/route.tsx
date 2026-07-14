@@ -59,7 +59,7 @@ function CrmLayout() {
             to="/onboard"
             className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
           >
-            <UserPlus className="h-4 w-4" /> Onboard New Client
+            <UserPlus className="h-4 w-4" /> Onboard
           </Link>
         </div>
         <nav className="flex-1 p-2 space-y-1">
