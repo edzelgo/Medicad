@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
-import { LayoutDashboard, Users, KanbanSquare, Shield, LogOut, ClipboardList, FolderPlus, BarChart3, Settings, UserPlus, Building2, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, Shield, LogOut, ClipboardList, FolderPlus, BarChart3, Settings, UserPlus, Building2, MessageSquare, UserCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ const nav: NavItem[] = [
   { to: "/crm/intake-dashboard", label: "Intake Dashboard", icon: ClipboardList },
   { to: "/crm/cases/new", label: "Add New Case", icon: FolderPlus },
   { to: "/crm/leads", label: "Leads", icon: Users },
+  { to: "/crm/onboarding", label: "Onboarding", icon: UserCheck },
   { to: "/crm/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/crm/reports", label: "Reports", icon: BarChart3 },
   { to: "/crm/messages", label: "Messages", icon: MessageSquare },

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertOnboarder, assertStaff, getOnboarderAccess } from "@/lib/auth/staff";
+import { genTempPassword } from "@/lib/temp-password";
 import { z } from "zod";
 
 export type ClientAccount =
@@ -121,15 +122,6 @@ function clean(input: Record<string, unknown>) {
     out[k] = v;
   }
   return out;
-}
-
-/** Readable, reasonably strong temporary password (no ambiguous chars). */
-function genTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  let out = "";
-  for (const b of bytes) out += chars[b % chars.length];
-  return `${out}!7`; // guarantee a symbol + digit for password policies
 }
 
 export const myOnboardAccess = createServerFn({ method: "GET" })

@@ -27,6 +27,7 @@ import { Route as AuthenticatedCrmSettingsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCrmReportsRouteImport } from './routes/_authenticated/crm/reports'
 import { Route as AuthenticatedCrmReferralPartnersRouteImport } from './routes/_authenticated/crm/referral-partners'
 import { Route as AuthenticatedCrmPipelineRouteImport } from './routes/_authenticated/crm/pipeline'
+import { Route as AuthenticatedCrmOnboardingRouteImport } from './routes/_authenticated/crm/onboarding'
 import { Route as AuthenticatedCrmMessagesRouteImport } from './routes/_authenticated/crm/messages'
 import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
 import { Route as AuthenticatedCrmIntakeDashboardRouteImport } from './routes/_authenticated/crm/intake-dashboard'
@@ -131,6 +132,12 @@ const AuthenticatedCrmPipelineRoute =
     path: '/pipeline',
     getParentRoute: () => AuthenticatedCrmRouteRoute,
   } as any)
+const AuthenticatedCrmOnboardingRoute =
+  AuthenticatedCrmOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => AuthenticatedCrmRouteRoute,
+  } as any)
 const AuthenticatedCrmMessagesRoute =
   AuthenticatedCrmMessagesRouteImport.update({
     id: '/messages',
@@ -210,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/messages': typeof AuthenticatedCrmMessagesRoute
+  '/crm/onboarding': typeof AuthenticatedCrmOnboardingRoute
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/referral-partners': typeof AuthenticatedCrmReferralPartnersRoute
   '/crm/reports': typeof AuthenticatedCrmReportsRoute
@@ -238,6 +246,7 @@ export interface FileRoutesByTo {
   '/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/crm/messages': typeof AuthenticatedCrmMessagesRoute
+  '/crm/onboarding': typeof AuthenticatedCrmOnboardingRoute
   '/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/crm/referral-partners': typeof AuthenticatedCrmReferralPartnersRoute
   '/crm/reports': typeof AuthenticatedCrmReportsRoute
@@ -270,6 +279,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/intake-dashboard': typeof AuthenticatedCrmIntakeDashboardRoute
   '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRouteWithChildren
   '/_authenticated/crm/messages': typeof AuthenticatedCrmMessagesRoute
+  '/_authenticated/crm/onboarding': typeof AuthenticatedCrmOnboardingRoute
   '/_authenticated/crm/pipeline': typeof AuthenticatedCrmPipelineRoute
   '/_authenticated/crm/referral-partners': typeof AuthenticatedCrmReferralPartnersRoute
   '/_authenticated/crm/reports': typeof AuthenticatedCrmReportsRoute
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/messages'
+    | '/crm/onboarding'
     | '/crm/pipeline'
     | '/crm/referral-partners'
     | '/crm/reports'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/crm/intake-dashboard'
     | '/crm/leads'
     | '/crm/messages'
+    | '/crm/onboarding'
     | '/crm/pipeline'
     | '/crm/referral-partners'
     | '/crm/reports'
@@ -361,6 +373,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/intake-dashboard'
     | '/_authenticated/crm/leads'
     | '/_authenticated/crm/messages'
+    | '/_authenticated/crm/onboarding'
     | '/_authenticated/crm/pipeline'
     | '/_authenticated/crm/referral-partners'
     | '/_authenticated/crm/reports'
@@ -512,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmPipelineRouteImport
       parentRoute: typeof AuthenticatedCrmRouteRoute
     }
+    '/_authenticated/crm/onboarding': {
+      id: '/_authenticated/crm/onboarding'
+      path: '/onboarding'
+      fullPath: '/crm/onboarding'
+      preLoaderRoute: typeof AuthenticatedCrmOnboardingRouteImport
+      parentRoute: typeof AuthenticatedCrmRouteRoute
+    }
     '/_authenticated/crm/messages': {
       id: '/_authenticated/crm/messages'
       path: '/messages'
@@ -633,6 +653,7 @@ interface AuthenticatedCrmRouteRouteChildren {
   AuthenticatedCrmIntakeDashboardRoute: typeof AuthenticatedCrmIntakeDashboardRoute
   AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRouteWithChildren
   AuthenticatedCrmMessagesRoute: typeof AuthenticatedCrmMessagesRoute
+  AuthenticatedCrmOnboardingRoute: typeof AuthenticatedCrmOnboardingRoute
   AuthenticatedCrmPipelineRoute: typeof AuthenticatedCrmPipelineRoute
   AuthenticatedCrmReferralPartnersRoute: typeof AuthenticatedCrmReferralPartnersRoute
   AuthenticatedCrmReportsRoute: typeof AuthenticatedCrmReportsRoute
@@ -647,6 +668,7 @@ const AuthenticatedCrmRouteRouteChildren: AuthenticatedCrmRouteRouteChildren = {
   AuthenticatedCrmIntakeDashboardRoute: AuthenticatedCrmIntakeDashboardRoute,
   AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRouteWithChildren,
   AuthenticatedCrmMessagesRoute: AuthenticatedCrmMessagesRoute,
+  AuthenticatedCrmOnboardingRoute: AuthenticatedCrmOnboardingRoute,
   AuthenticatedCrmPipelineRoute: AuthenticatedCrmPipelineRoute,
   AuthenticatedCrmReferralPartnersRoute: AuthenticatedCrmReferralPartnersRoute,
   AuthenticatedCrmReportsRoute: AuthenticatedCrmReportsRoute,

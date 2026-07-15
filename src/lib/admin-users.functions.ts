@@ -1,9 +1,84 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertStaff } from "@/lib/auth/staff";
+import { genTempPassword } from "@/lib/temp-password";
 import { z } from "zod";
 
 const INVITABLE_ROLES = ["admin", "agent", "marketer", "client", "referral"] as const;
+export const TEAM_ROLES = ["admin", "agent", "marketer", "referral"] as const;
+
+export type TeamAccount =
+  | { mode: "invite"; sent: boolean; email: string }
+  | { mode: "password"; created: boolean; email: string; tempPassword?: string; placeholder?: boolean };
+
+/**
+ * Create a team member from details an admin types in — either by emailing a
+ * magic-link invite, or by creating a confirmed login immediately with a temp
+ * password and no email sent (email optional; a placeholder is generated).
+ * Grants the role right away either way.
+ */
+export const adminCreateTeamMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    mode: z.enum(["invite", "password"]),
+    role: z.enum(TEAM_ROLES),
+    email: z.string().trim().email().max(255).optional().nullable().or(z.literal("")),
+    full_name: z.string().trim().max(150).optional().nullable().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().nullable().or(z.literal("")),
+  }).parse(d))
+  .handler(async ({ data, context }): Promise<{ account: TeamAccount }> => {
+    const { isAdmin } = await assertStaff(context);
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const fullName = data.full_name?.trim() || undefined;
+    const phone = data.phone?.trim() || undefined;
+
+    const grant = async (uid: string) => {
+      await supabaseAdmin.from("user_roles").upsert(
+        { user_id: uid, role: data.role, status: "approved" }, { onConflict: "user_id,role" },
+      );
+      await supabaseAdmin.from("profiles").upsert(
+        { id: uid, full_name: fullName ?? null, phone: phone ?? null }, { onConflict: "id" },
+      );
+    };
+
+    if (data.mode === "invite") {
+      if (!data.email) throw new Error("An email is required to send an invite.");
+      const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        data.email, { data: { role: data.role, full_name: fullName, phone } },
+      );
+      if (error) {
+        const msg = error.message ?? "Invite failed";
+        if (/already.*(registered|exists)/i.test(msg)) {
+          throw new Error("A user with this email already exists. Grant them the role from Admin → Users instead.");
+        }
+        console.error("[team:invite]", msg);
+        throw new Error("Failed to send the invite email. Please try again.");
+      }
+      if (invited?.user?.id) await grant(invited.user.id);
+      return { account: { mode: "invite", sent: true, email: data.email } };
+    }
+
+    // password — no email sent; email optional
+    const placeholder = !data.email;
+    const email = data.email || `${data.role}.${Date.now().toString(36)}.${Math.floor(Math.random() * 1e4)}@no-email.invalid`;
+    const tempPassword = genTempPassword();
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email, password: tempPassword, email_confirm: true,
+      user_metadata: { role: data.role, full_name: fullName, phone },
+    });
+    if (error) {
+      const msg = error.message ?? "Account creation failed";
+      if (/already.*(registered|exists)/i.test(msg)) {
+        throw new Error("A user with this email already exists. Grant them the role from Admin → Users instead.");
+      }
+      console.error("[team:create]", msg);
+      throw new Error("Failed to create the account. Please try again.");
+    }
+    if (created?.user?.id) await grant(created.user.id);
+    return { account: { mode: "password", created: true, email, tempPassword, placeholder } };
+  });
 
 /**
  * Invite a user by email and grant them a role immediately. This is the
