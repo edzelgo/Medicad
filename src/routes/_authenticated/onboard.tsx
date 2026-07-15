@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { z } from "zod";
 import { IntakeForm, type IntakeValues } from "@/components/crm/intake-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,12 @@ import { adminInviteUser } from "@/lib/admin-users.functions";
 import { UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 
+const searchSchema = z.object({
+  tab: z.enum(["client", "team"]).optional().default("client"),
+});
+
 export const Route = createFileRoute("/_authenticated/onboard")({
+  validateSearch: (s) => searchSchema.parse(s),
   beforeLoad: async () => {
     const res = await myOnboardAccess();
     if (!res.allowed) throw redirect({ to: "/portal" });
@@ -22,8 +28,13 @@ export const Route = createFileRoute("/_authenticated/onboard")({
 function OnboardPage() {
   // beforeLoad redirects when access isn't allowed, so the role is always set here.
   const onboarderRole = (Route.useRouteContext().onboarderRole ?? "agent") as "admin" | "agent" | "referral";
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const isAdmin = onboarderRole === "admin";
-  const [tab, setTab] = useState<"client" | "team">("client");
+  // The URL drives the tab so the CRM's two buttons land straight on the right
+  // one. Non-admins only ever get the client form.
+  const tab: "client" | "team" = isAdmin ? search.tab : "client";
+  const setTab = (t: "client" | "team") => navigate({ search: { tab: t }, replace: true });
 
   return (
     <div className="min-h-screen bg-background text-foreground">

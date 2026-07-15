@@ -20,6 +20,7 @@ function Dashboard() {
         <h1 className="font-serif text-2xl">Dashboard</h1>
         <Link
           to="/onboard"
+          search={{ tab: "client" as const }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
         >
           <UserPlus className="h-4 w-4" /> Onboard New Client

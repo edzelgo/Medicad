@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { adminMyAccess } from "@/lib/admin.functions";
 import { adminListPendingRoles } from "@/lib/admin-users.functions";
 import { myUnreadCount } from "@/lib/messages.functions";
+import { myRoles } from "@/lib/crm.functions";
 
 export const Route = createFileRoute("/_authenticated/crm")({
   beforeLoad: async () => {
@@ -47,6 +48,9 @@ function CrmLayout() {
     refetchInterval: 30_000,
   });
   const unreadCount = unread ?? 0;
+  const meFn = useServerFn(myRoles);
+  const { data: roles } = useQuery({ queryKey: ["crm", "me"], queryFn: () => meFn() });
+  const isAdmin = !!roles?.isAdmin;
   return (
     <div className="min-h-screen flex bg-background text-foreground">
       <aside className="w-60 border-r border-border bg-card flex flex-col">
@@ -54,13 +58,23 @@ function CrmLayout() {
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">Back to site</Link>
           <div className="mt-2 font-serif text-lg">Medicaid CRM</div>
         </div>
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border space-y-2">
           <Link
             to="/onboard"
+            search={{ tab: "client" as const }}
             className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
           >
-            <UserPlus className="h-4 w-4" /> Onboard
+            <UserPlus className="h-4 w-4" /> Onboard Client
           </Link>
+          {isAdmin && (
+            <Link
+              to="/onboard"
+              search={{ tab: "team" as const }}
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium border border-border bg-card hover:bg-muted"
+            >
+              <Users className="h-4 w-4" /> Onboard Team Member
+            </Link>
+          )}
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {nav.map((n) => {

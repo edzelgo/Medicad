@@ -41,7 +41,7 @@ function MyReferrals() {
             <h1 className="font-serif text-2xl">My Referrals</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/onboard" className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90">
+            <Link to="/onboard" search={{ tab: "client" as const }} className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90">
               <UserPlus className="h-4 w-4" /> Submit new referral
             </Link>
             <Button variant="outline" size="sm" onClick={async () => { await supabase.auth.signOut(); window.location.href = "/auth?role=referral"; }}>
